@@ -301,10 +301,7 @@ function SnippetCard({ snippet, onSelect }) {
 
 
 // ---------------- snippet grid ----------------
-import { useState } from "react";
-import SnippetCard from "./SnippetCard"; // assuming you have this component
-
-export default function SnippetGrid({ snippets, onSelect }) {
+function SnippetGrid({ snippets, onSelect }) {
   const [currentPage, setCurrentPage] = useState(1);
   const snippetsPerPage = 8; // adjust as needed
 
