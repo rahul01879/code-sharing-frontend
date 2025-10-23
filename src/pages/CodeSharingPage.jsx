@@ -21,7 +21,7 @@ import "prismjs/components/prism-cpp";
 import "prismjs/components/prism-java";
 import "prismjs/components/prism-ruby";
 import { FaUser, FaEnvelope, FaCode, FaGithub, FaCalendarAlt, FaExternalLinkAlt } from "react-icons/fa";
-import { Home, PlusSquare, FileText, User, LogOut, Shield, FolderOpen, Edit2, Trash2, ArrowLeft, Github, Twitter, Linkedin, Mail, Code2, Menu, X  } from "lucide-react";
+import { Home, PlusSquare, FileText, User, LogOut, Shield, FolderOpen, Edit2, Trash2, ArrowLeft, Github, Twitter, Linkedin, Mail, Code2, Menu, X , Search } from "lucide-react";
 
 
 
@@ -76,10 +76,10 @@ function timeAgo(date) {
   }
   return "just now";
 }
-
 function Header({ current, onNavigate, onLogout }) {
-  const isAdmin = localStorage.getItem("isAdmin") === "true"; // check flag
+  const isAdmin = localStorage.getItem("isAdmin") === "true";
   const [menuOpen, setMenuOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
   const navItems = [
     { id: "home", label: "Home", icon: <Home size={18} /> },
@@ -91,170 +91,179 @@ function Header({ current, onNavigate, onLogout }) {
 
   const handleNavigate = (id, value) => {
     onNavigate?.(id, value);
-    setMenuOpen(false); // close menu after navigation on mobile
+    setMenuOpen(false);
   };
 
   return (
-    <header className="bg-gray-900/70 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-gray-800 w-full">
-      <div className="flex justify-between items-center px-6 py-4">
-        {/* Logo */}
+    <header className="sticky top-0 z-50 w-full bg-gray-950/80 backdrop-blur-xl border-b border-gray-800 shadow-lg">
+      <div className="flex items-center justify-between px-5 sm:px-8 py-4">
+        {/* --- LOGO --- */}
         <button
           onClick={() => handleNavigate("home")}
-          className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 tracking-tight"
+          className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 tracking-tight hover:scale-105 transition-transform"
         >
-          CODE X
+          CODE<span className="text-gray-300">X</span>
         </button>
 
-        {/* Desktop Navigation */}
+        {/* --- DESKTOP NAV --- */}
         <nav className="hidden md:flex items-center gap-4">
-          <ul className="flex items-center gap-3">
-            {navItems.map((item) => (
-              <li key={item.id}>
-                <button
-                  onClick={() => handleNavigate(item.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 text-sm font-medium ${
-                    current === item.id
-                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg scale-105"
-                      : "text-gray-300 hover:bg-gray-800 hover:text-white"
-                  }`}
-                >
-                  {item.icon}
-                  {item.label}
-                </button>
-              </li>
-            ))}
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleNavigate(item.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                current === item.id
+                  ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
+                  : "text-gray-300 hover:text-white hover:bg-gray-800"
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
 
-            {isAdmin && (
-              <li>
-                <Link
-                  to="/admin/dashboard"
-                  className="flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white"
-                >
-                  <Shield size={18} /> Admin
-                </Link>
-              </li>
-            )}
+          {isAdmin && (
+            <Link
+              to="/admin/dashboard"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-all"
+            >
+              <Shield size={18} /> Admin
+            </Link>
+          )}
 
-            {/* Search bar (desktop only) */}
+          {/* Search bar (desktop only) */}
+          <div className="relative ml-4">
+            <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
             <input
               type="text"
-              placeholder="🔍 Search snippets..."
-              className="hidden md:block px-6 py-2 ml-4 rounded-full bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onChange={(e) => handleNavigate("search", e.target.value)}
+              placeholder="Search snippets..."
+              className="pl-9 pr-4 py-2 rounded-full bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                handleNavigate("search", e.target.value);
+              }}
             />
+          </div>
 
-            {onLogout && (
-              <li>
-                <button
-                  onClick={onLogout}
-                  className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-pink-500 px-4 py-2 rounded-full text-white shadow-lg hover:scale-105 transition-all duration-300 text-sm font-medium"
-                >
-                  <LogOut size={18} /> Logout
-                </button>
-              </li>
-            )}
-          </ul>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-2 ml-3 px-4 py-2 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium text-sm shadow-md hover:scale-105 transition-all duration-300"
+            >
+              <LogOut size={18} /> Logout
+            </button>
+          )}
         </nav>
 
-        {/* Mobile Menu Button */}
+        {/* --- MOBILE MENU BUTTON --- */}
         <button
-          className="md:hidden text-gray-300 hover:text-white transition-all"
           onClick={() => setMenuOpen(!menuOpen)}
+          className="md:hidden text-gray-300 hover:text-white transition-transform duration-200"
         >
-          {menuOpen ? <X size={26} /> : <Menu size={26} />}
+          {menuOpen ? <X size={28} /> : <Menu size={28} />}
         </button>
       </div>
 
-      {/* Mobile Menu */}
-      {menuOpen && (
-        <div className="md:hidden border-t border-gray-800 bg-gray-900/95 px-6 pb-4">
-          <ul className="flex flex-col gap-3 mt-3">
-            {navItems.map((item) => (
-              <li key={item.id}>
-                <button
-                  onClick={() => handleNavigate(item.id)}
-                  className={`flex items-center gap-2 w-full px-4 py-2 rounded-md transition-all text-sm font-medium ${
-                    current === item.id
-                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
-                      : "text-gray-300 hover:bg-gray-800 hover:text-white"
-                  }`}
-                >
-                  {item.icon}
-                  {item.label}
-                </button>
-              </li>
-            ))}
+      {/* --- MOBILE NAV DROPDOWN --- */}
+      <div
+        className={`md:hidden overflow-hidden transition-all duration-300 ${
+          menuOpen ? "max-h-[450px] opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <ul className="flex flex-col gap-3 bg-gray-900/95 px-6 py-4 border-t border-gray-800 rounded-b-2xl">
+          {/* Search Bar */}
+          <li className="relative">
+            <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search..."
+              className="w-full pl-9 pr-4 py-2 rounded-md bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                handleNavigate("search", e.target.value);
+              }}
+            />
+          </li>
 
-            {isAdmin && (
-              <li>
-                <Link
-                  to="/admin/dashboard"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-2 w-full px-4 py-2 rounded-md text-gray-300 hover:bg-gray-800 hover:text-white text-sm font-medium"
-                >
-                  <Shield size={18} /> Admin
-                </Link>
-              </li>
-            )}
-
-            <li>
-              <input
-                type="text"
-                placeholder="🔍 Search..."
-                className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onChange={(e) => handleNavigate("search", e.target.value)}
-              />
+          {navItems.map((item) => (
+            <li key={item.id}>
+              <button
+                onClick={() => handleNavigate(item.id)}
+                className={`flex items-center gap-3 w-full px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  current === item.id
+                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md"
+                    : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
             </li>
+          ))}
 
-            {onLogout && (
-              <li>
-                <button
-                  onClick={() => {
-                    onLogout();
-                    setMenuOpen(false);
-                  }}
-                  className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-red-500 to-pink-500 px-4 py-2 rounded-md text-white font-medium hover:scale-105 transition-all"
-                >
-                  <LogOut size={18} /> Logout
-                </button>
-              </li>
-            )}
-          </ul>
-        </div>
-      )}
+          {isAdmin && (
+            <li>
+              <Link
+                to="/admin/dashboard"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 w-full px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white"
+              >
+                <Shield size={18} /> Admin
+              </Link>
+            </li>
+          )}
+
+          {onLogout && (
+            <li>
+              <button
+                onClick={() => {
+                  onLogout();
+                  setMenuOpen(false);
+                }}
+                className="flex items-center justify-center gap-2 w-full mt-2 bg-gradient-to-r from-red-500 to-pink-500 px-4 py-2 rounded-md text-white font-medium hover:scale-105 transition-all"
+              >
+                <LogOut size={18} /> Logout
+              </button>
+            </li>
+          )}
+        </ul>
+      </div>
     </header>
   );
 }
 
 
 
-// ---------------- snippet card ----------------
+// ---------------- Snippet Card ----------------
 function SnippetCard({ snippet, onSelect }) {
   return (
     <div
-      onClick={() => onSelect(snippet._id)} // pass ID (fixed)
-      className="group bg-gradient-to-br from-gray-900/80 via-gray-800/80 to-gray-900/80 
-                 border border-gray-700 rounded-2xl p-5 shadow-lg 
-                 hover:shadow-blue-500/20 backdrop-blur-md transition 
-                 transform hover:-translate-y-2 hover:scale-[1.02] cursor-pointer"
+      onClick={() => onSelect(snippet._id)}
+      className="group bg-gradient-to-br from-gray-900/80 via-gray-800/80 to-gray-900/80
+                 border border-gray-700 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-lg
+                 hover:shadow-blue-500/20 backdrop-blur-md transition-all duration-300
+                 transform hover:-translate-y-1 hover:scale-[1.01] sm:hover:-translate-y-2 sm:hover:scale-[1.02]
+                 cursor-pointer w-full"
     >
       {/* Title */}
-      <h3 className="text-xl font-bold text-blue-400 group-hover:text-blue-300 transition">
+      <h3 className="text-lg sm:text-xl font-semibold sm:font-bold text-blue-400 group-hover:text-blue-300 transition line-clamp-1">
         {snippet.title}
       </h3>
 
       {/* Description */}
-      <p className="text-gray-300 text-sm mt-2 line-clamp-2">
+      <p className="text-gray-300 text-xs sm:text-sm mt-1 sm:mt-2 line-clamp-2 leading-relaxed">
         {snippet.description || "No description provided."}
       </p>
 
       {/* Tags */}
       {snippet.tags?.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
           {snippet.tags.map((tag, idx) => (
             <span
               key={idx}
-              className="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded-full"
+              className="bg-gray-800 text-gray-300 text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 rounded-full"
             >
               #{tag}
             </span>
@@ -263,19 +272,19 @@ function SnippetCard({ snippet, onSelect }) {
       )}
 
       {/* Language */}
-      <div className="mt-3">
+      <div className="mt-2 sm:mt-3">
         <span
           className={`${getBadgeColor(
             snippet.language
-          )} px-3 py-1 rounded-full text-xs font-semibold shadow-md`}
+          )} px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold shadow-md`}
         >
           {snippet.language || "N/A"}
         </span>
       </div>
 
-      {/* Code preview */}
-      <div className="mt-4 bg-gray-900/70 border border-gray-700 rounded-lg overflow-hidden">
-        <pre className="m-0 max-h-32 overflow-hidden text-xs p-3">
+      {/* Code Preview */}
+      <div className="mt-3 sm:mt-4 bg-gray-900/70 border border-gray-700 rounded-lg overflow-hidden">
+        <pre className="m-0 max-h-24 sm:max-h-32 overflow-hidden text-[11px] sm:text-xs p-2 sm:p-3 font-mono">
           <code
             className={`language-${(snippet.language || "javascript").toLowerCase()}`}
           >
@@ -286,18 +295,21 @@ function SnippetCard({ snippet, onSelect }) {
         </pre>
       </div>
 
-      {/* Footer: date, author, likes/comments */}
-      <div className="mt-4 flex justify-between items-center text-xs text-gray-400">
-        <span>📅 {formatDate(snippet.createdAt)}</span>
-        <div className="flex items-center gap-3">
-          <span>👍 {snippet.likes?.length || 0}</span>
-          {/* <span>💬 {snippet.comments?.length || 0}</span> */}
-          <span>👤 {snippet.author || "Unknown"}</span>
+      {/* Footer */}
+      <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row justify-between sm:items-center gap-2 sm:gap-0 text-[11px] sm:text-xs text-gray-400">
+        <span className="flex items-center gap-1">📅 {formatDate(snippet.createdAt)}</span>
+
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="flex items-center gap-1">👍 {snippet.likes?.length || 0}</span>
+          {/* Uncomment if you want comment count */}
+          {/* <span className="flex items-center gap-1">💬 {snippet.comments?.length || 0}</span> */}
+          <span className="flex items-center gap-1">👤 {snippet.author || "Unknown"}</span>
         </div>
       </div>
     </div>
   );
 }
+
 
 
 // ---------------- snippet grid ----------------
