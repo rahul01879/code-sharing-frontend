@@ -26,7 +26,7 @@ export default function AdminGithubUsersPage() {
     try {
       setLoading(true);
       const headers = { "x-admin-key": adminKey };
-      const res = await axios.get("http://localhost:5000/api/admin/github-users", { headers });
+      const res = await axios.get(`${API}/api/admin/github-users`, { headers });
       const fetchedUsers = res.data || [];
 
       // verify GitHub usernames
@@ -59,7 +59,7 @@ export default function AdminGithubUsersPage() {
         user.githubUsername = ghRes.data.login;
         // optional: update backend cached username
         await axios.post(
-          `http://localhost:5000/api/admin/github-users/update/${user._id}`,
+          `${API}/api/admin/github-users/update/${user._id}`,
           { githubUsername: ghRes.data.login },
           { headers: { "x-admin-key": adminKey } }
         );
@@ -81,7 +81,7 @@ export default function AdminGithubUsersPage() {
       setRevoking(userId);
       const headers = { "x-admin-key": adminKey };
       const res = await axios.post(
-        `http://localhost:5000/api/admin/github-users/revoke/${userId}`,
+        `${API}/api/admin/github-users/revoke/${userId}`,
         {},
         { headers }
       );

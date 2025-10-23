@@ -20,7 +20,7 @@ export default function AdminSnippetsPage() {
   const [selectedSnippet, setSelectedSnippet] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
+const API = import.meta.env.VITE_API_BASE_URL;
   const adminKey = sessionStorage.getItem("adminKey");
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function AdminSnippetsPage() {
   const fetchSnippets = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:5000/api/admin/snippets", {
+      const res = await axios.get(`${API}/api/admin/snippets`, {
         headers: { "x-admin-key": adminKey },
       });
       setSnippets(res.data);
@@ -54,7 +54,7 @@ export default function AdminSnippetsPage() {
   const deleteSnippet = async (id) => {
     if (!window.confirm("Are you sure you want to delete this snippet?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/snippets/${id}`, {
+      await axios.delete(`${API}/api/admin/snippets/${id}`, {
         headers: { "x-admin-key": adminKey },
       });
       setSnippets((prev) => prev.filter((s) => s._id !== id));

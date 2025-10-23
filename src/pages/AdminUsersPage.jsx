@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-
+const API = import.meta.env.VITE_API_BASE_URL;
 function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -9,7 +9,7 @@ function AdminUsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/admin/users", {
+      const res = await axios.get(`${API}/api/admin/users`, {
         headers: {
           "x-admin-key": adminKey, // ✅ REQUIRED
         },
@@ -27,7 +27,7 @@ function AdminUsersPage() {
   const handleDelete = async (userId) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/admin/users/${userId}`, {
+        await axios.delete(`${API}/api/admin/users/${userId}`, {
           headers: {
             "x-admin-key": adminKey, // ✅ REQUIRED
           },

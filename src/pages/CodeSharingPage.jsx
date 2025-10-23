@@ -30,7 +30,7 @@ import "../App.css";
 import AdminLoginPage from "./AdminLoginPage";
 import AdminDashboardPage from "./AdminDashboardPage";
 
-
+const API = import.meta.env.VITE_API_BASE_URL;
 
 // ---------------- helpers ----------------
 const getBadgeColor = (lang) => {
@@ -349,7 +349,7 @@ function SnippetModal({
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
-      const res = await fetch("http://localhost:5000/api/collections", {
+      const res = await fetch(`${API}/api/collections`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -393,7 +393,7 @@ function SnippetModal({
     e.preventDefault();
     try {
       const res = await fetch(
-        `http://localhost:5000/api/snippets/${snippet._id}`,
+        `${API}/api/snippets/${snippet._id}`,
         {
           method: "PUT",
           headers: {
@@ -420,7 +420,7 @@ function SnippetModal({
   const handleAddToCollection = async (collectionId) => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/collections/${collectionId}/add-snippet`,
+        `${API}/api/collections/${collectionId}/add-snippet`,
         {
           method: "PUT",
           headers: {
@@ -446,7 +446,7 @@ function SnippetModal({
   const handleCreateCollection = async () => {
     if (!newCollection.trim()) return alert("Enter collection name");
     try {
-      const res = await fetch("http://localhost:5000/api/collections", {
+      const res = await fetch(`${API}/api/collections`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -737,7 +737,7 @@ function AddSnippetForm({ onAdd }) {
         return;
       }
       const res = await axios.post(
-        "http://localhost:5000/api/snippets",
+        `${API}/api/snippets`,
         { title, description, language, code, isPublic: privacy === "public" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -854,7 +854,7 @@ function Profile() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const res = await fetch("http://localhost:5000/api/auth/me", {
+    const res = await fetch(`${API}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
@@ -868,7 +868,7 @@ function Profile() {
 
     try {
       setChecking(true);
-      const res = await fetch("http://localhost:5000/api/user/github-token", {
+      const res = await fetch(`${API}/api/user/github-token`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -897,7 +897,7 @@ function Profile() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const res = await fetch("http://localhost:5000/api/snippets/mine", {
+    const res = await fetch(`${API}/api/snippets/mine`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {
@@ -941,7 +941,7 @@ function Profile() {
         return;
       }
 
-      const res = await fetch("http://localhost:5000/api/user/github-token", {
+      const res = await fetch(`${API}/api/user/github-token`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -971,7 +971,7 @@ function Profile() {
 
     try {
       const token = localStorage.getItem("token");
-      await fetch("http://localhost:5000/api/user/github-token", {
+      await fetch(`${API}/api/user/github-token`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -1280,7 +1280,7 @@ export default function CodeSharingPage({ onLogout }) {
   useEffect(() => {
     // Fetch public snippets
     axios
-      .get("http://localhost:5000/api/snippets/public")
+      .get(`${API}/api/snippets/public`)
       .then((res) => setPublicSnippets(normalizeSnippets(res.data)))
       .catch((err) => console.error("fetch public error:", err));
 
@@ -1288,7 +1288,7 @@ export default function CodeSharingPage({ onLogout }) {
     if (token) {
       // Fetch current user
       axios
-        .get("http://localhost:5000/api/auth/me", {
+        .get(`${API}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((res) => setCurrentUser(res.data))
@@ -1299,7 +1299,7 @@ export default function CodeSharingPage({ onLogout }) {
 
       // Fetch user’s own snippets
       axios
-        .get("http://localhost:5000/api/snippets/mine", {
+        .get(`${API}/api/snippets/mine`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((res) => setUserSnippets(normalizeSnippets(res.data)))
@@ -1314,7 +1314,7 @@ export default function CodeSharingPage({ onLogout }) {
   const fetchCollections = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/collections", {
+      const res = await axios.get(`${API}/api/collections`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCollections(res.data || []);
@@ -1325,7 +1325,7 @@ export default function CodeSharingPage({ onLogout }) {
 
   const handleSelectCollection = async (id) => {
     const token = localStorage.getItem("token");
-    const res = await axios.get(`http://localhost:5000/api/collections/${id}`, {
+    const res = await axios.get(`${API}/api/collections/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     setSelectedCollection(res.data);
@@ -1337,7 +1337,7 @@ export default function CodeSharingPage({ onLogout }) {
     if (!name) return;
     const token = localStorage.getItem("token");
     await axios.put(
-      `http://localhost:5000/api/collections/${collection._id}`,
+      `${API}/api/collections/${collection._id}`,
       { name, description },
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -1347,7 +1347,7 @@ export default function CodeSharingPage({ onLogout }) {
   const handleDeleteCollection = async (id) => {
     if (!window.confirm("Delete this collection?")) return;
     const token = localStorage.getItem("token");
-    await axios.delete(`http://localhost:5000/api/collections/${id}`, {
+    await axios.delete(`${API}/api/collections/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     fetchCollections();
@@ -1357,7 +1357,7 @@ export default function CodeSharingPage({ onLogout }) {
   const fetchSnippetById = async (id) => {
     if (!id) return;
     try {
-      const res = await axios.get(`http://localhost:5000/api/snippets/${id}`);
+      const res = await axios.get(`${API}/api/snippets/${id}`);
       setSelectedSnippet(res.data);
     } catch (err) {
       console.error("fetch snippet error:", err);
@@ -1374,7 +1374,7 @@ export default function CodeSharingPage({ onLogout }) {
     if (!window.confirm("Delete this snippet?")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/snippets/${id}`, {
+      await axios.delete(`${API}/api/snippets/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPublicSnippets((prev) => prev.filter((s) => s._id !== id));
@@ -1401,7 +1401,7 @@ export default function CodeSharingPage({ onLogout }) {
       const token = localStorage.getItem("token");
       if (!token) return alert("Login required to like snippets!");
       const res = await axios.post(
-        `http://localhost:5000/api/snippets/${id}/like`,
+        `${API}/api/snippets/${id}/like`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -1416,7 +1416,7 @@ export default function CodeSharingPage({ onLogout }) {
       const token = localStorage.getItem("token");
       if (!token) return alert("Login required to comment!");
       const res = await axios.post(
-        `http://localhost:5000/api/snippets/${id}/comments`,
+        `${API}/api/snippets/${id}/comments`,
         { text },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -1437,7 +1437,7 @@ export default function CodeSharingPage({ onLogout }) {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/snippets/${snippetId}/sync-github`,
+        `${API}/api/snippets/${snippetId}/sync-github`,
         {
           method: "POST",
           headers: {
@@ -1469,7 +1469,7 @@ export default function CodeSharingPage({ onLogout }) {
       setSearchQuery(query);
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/snippets/search?q=${encodeURIComponent(query)}`
+          `${API}/api/snippets/search?q=${encodeURIComponent(query)}`
         );
         setSearchResults(res.data || []);
       } catch (err) {

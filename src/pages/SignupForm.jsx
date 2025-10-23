@@ -8,12 +8,13 @@ export default function SignupForm({ onSignup }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const API = import.meta.env.VITE_API_BASE_URL;
 
   async function submit(e) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/signup", {
+      const res = await axios.post(`${API}/api/auth/signup`, {
         username,
         email,
         password

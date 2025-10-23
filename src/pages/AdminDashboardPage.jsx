@@ -48,10 +48,10 @@ export default function AdminDashboardPage({ onAdminLogout }) {
         const headers = { "x-admin-key": adminKey };
 
         const [statsRes, growthRes, activityRes, githubRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/admin/stats", { headers }),
-          axios.get("http://localhost:5000/api/admin/user-growth", { headers }),
-          axios.get("http://localhost:5000/api/admin/snippet-activity", { headers }),
-          axios.get("http://localhost:5000/api/admin/github-users", { headers }),
+          axios.get(`${API}/api/admin/stats`, { headers }),
+          axios.get(`${API}/api/admin/user-growth`, { headers }),
+          axios.get(`${API}/api/admin/snippet-activity`, { headers }),
+          axios.get(`${API}/api/admin/github-users`, { headers }),
         ]);
 
         setStats(statsRes.data);
