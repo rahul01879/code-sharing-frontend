@@ -617,28 +617,36 @@ function SnippetModal({
               {snippet.description}
             </p>
 
-            {/* CODE BLOCK */}
-            <div className="mt-4 border border-gray-700 rounded-lg bg-gray-900/80 overflow-hidden">
-              <div className="flex justify-between items-center bg-gray-800/70 px-3 py-2 border-b border-gray-700 text-xs sm:text-sm">
-                <span className="font-semibold text-blue-400 uppercase">
-                  {snippet.language || "Code"}
-                </span>
-                <button
-                  onClick={handleCopy}
-                  className="text-gray-300 hover:text-white flex items-center gap-1"
-                >
-                  📋 Copy
-                </button>
-              </div>
-              <pre className="m-0 text-xs sm:text-sm max-h-[400px] sm:max-h-[500px] overflow-auto p-3 sm:p-4 line-numbers">
-                <code
-                  ref={codeRef}
-                  className={`language-${prismLang} line-numbers`}
-                >
-                  {snippet.code}
-                </code>
-              </pre>
-            </div>
+            
+           {/* CODE BLOCK */}
+        <div className="mt-4 border border-gray-700 rounded-lg bg-gray-900/80 overflow-hidden">
+          <div className="flex justify-between items-center bg-gray-800/70 px-3 py-2 border-b border-gray-700 text-xs sm:text-sm">
+            <span className="font-semibold text-blue-400 uppercase">
+              {snippet.language || "Code"}
+            </span>
+            <button
+              onClick={handleCopy}
+              className="text-gray-300 hover:text-white flex items-center gap-1"
+            >
+              📋 Copy
+            </button>
+          </div>
+
+          {/* ✅ Responsive Code Area */}
+          <pre className="m-0 overflow-x-auto max-h-[60vh] sm:max-h-[500px] p-2 sm:p-4 text-[11px] sm:text-sm leading-relaxed">
+            <code
+              ref={codeRef}
+              className={`language-${prismLang} line-numbers block min-w-full whitespace-pre`}
+              style={{
+                fontSize: window.innerWidth < 640 ? "11px" : "14px",
+                lineHeight: window.innerWidth < 640 ? "1.3" : "1.6",
+              }}
+            >
+              {snippet.code}
+            </code>
+          </pre>
+        </div>
+
 
             {/* ACTION BUTTONS */}
             <div className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3 mt-5">
