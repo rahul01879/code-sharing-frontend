@@ -26,7 +26,7 @@ export default function AdminDashboardPage({ onAdminLogout }) {
   const [githubUsers, setGithubUsers] = useState([]);
   const [githubChartData, setGithubChartData] = useState([]);
   const [loading, setLoading] = useState(true);
-
+const API = import.meta.env.VITE_API_BASE_URL;
   const adminKey = sessionStorage.getItem("adminKey");
 
   const handleLogout = () => {

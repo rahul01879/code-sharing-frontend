@@ -9,7 +9,7 @@ export default function AdminGithubUsersPage() {
   const [loading, setLoading] = useState(true);
   const [revoking, setRevoking] = useState(null);
   const [verifying, setVerifying] = useState({}); // store verification state per user
-
+const API = import.meta.env.VITE_API_BASE_URL;
   const adminKey = sessionStorage.getItem("adminKey");
 
   useEffect(() => {

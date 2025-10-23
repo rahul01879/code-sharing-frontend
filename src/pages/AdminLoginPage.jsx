@@ -9,7 +9,7 @@ function AdminLoginPage({ onAdminLogin }) {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
+const API = import.meta.env.VITE_API_BASE_URL;
   // 🔒 Redirect if already logged in as admin
   useEffect(() => {
     const isAdmin = sessionStorage.getItem("adminAuth") === "true";

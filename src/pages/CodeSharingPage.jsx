@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import Prism from "prismjs";
-
+import { motion, AnimatePresence } from "framer-motion";
 // Prism styles + line numbers plugin
 import "prismjs/themes/prism-tomorrow.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.css";
@@ -21,7 +21,7 @@ import "prismjs/components/prism-cpp";
 import "prismjs/components/prism-java";
 import "prismjs/components/prism-ruby";
 import { FaUser, FaEnvelope, FaCode, FaGithub, FaCalendarAlt, FaExternalLinkAlt } from "react-icons/fa";
-import { Home, PlusSquare, FileText, User, LogOut, Shield, FolderOpen, Edit2, Trash2, ArrowLeft, Github, Twitter, Linkedin, Mail, Code2  } from "lucide-react";
+import { Home, PlusSquare, FileText, User, LogOut, Shield, FolderOpen, Edit2, Trash2, ArrowLeft, Github, Twitter, Linkedin, Mail, Code2, Menu, X  } from "lucide-react";
 
 
 
@@ -77,9 +77,9 @@ function timeAgo(date) {
   return "just now";
 }
 
-
 function Header({ current, onNavigate, onLogout }) {
   const isAdmin = localStorage.getItem("isAdmin") === "true"; // check flag
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const navItems = [
     { id: "home", label: "Home", icon: <Home size={18} /> },
@@ -89,24 +89,29 @@ function Header({ current, onNavigate, onLogout }) {
     { id: "profile", label: "Profile", icon: <User size={18} /> },
   ];
 
+  const handleNavigate = (id, value) => {
+    onNavigate?.(id, value);
+    setMenuOpen(false); // close menu after navigation on mobile
+  };
+
   return (
     <header className="bg-gray-900/70 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-gray-800 w-full">
-      <div className="flex justify-between items-center px-8 py-4">
+      <div className="flex justify-between items-center px-6 py-4">
         {/* Logo */}
         <button
-          onClick={() => onNavigate?.("home")}
+          onClick={() => handleNavigate("home")}
           className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 tracking-tight"
         >
           CODE X
         </button>
 
-        {/* Navigation */}
-        <nav className="flex items-center gap-4">
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-4">
           <ul className="flex items-center gap-3">
             {navItems.map((item) => (
               <li key={item.id}>
                 <button
-                  onClick={() => onNavigate(item.id)}
+                  onClick={() => handleNavigate(item.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 text-sm font-medium ${
                     current === item.id
                       ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg scale-105"
@@ -119,7 +124,6 @@ function Header({ current, onNavigate, onLogout }) {
               </li>
             ))}
 
-            {/* Show Admin only if logged in as admin */}
             {isAdmin && (
               <li>
                 <Link
@@ -131,15 +135,14 @@ function Header({ current, onNavigate, onLogout }) {
               </li>
             )}
 
-             {/* 🔍 Search Bar (for quick filtering) */}
-          <input
-            type="text"
-            placeholder="🔍 Search by title, author, or language..."
-            className="hidden md:block px-6 py-2 ml-4 rounded-full bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onChange={(e) => onNavigate?.("search", e.target.value)}
-          />
+            {/* Search bar (desktop only) */}
+            <input
+              type="text"
+              placeholder="🔍 Search snippets..."
+              className="hidden md:block px-6 py-2 ml-4 rounded-full bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => handleNavigate("search", e.target.value)}
+            />
 
-            {/* Logout */}
             {onLogout && (
               <li>
                 <button
@@ -151,10 +154,74 @@ function Header({ current, onNavigate, onLogout }) {
               </li>
             )}
           </ul>
-
-         
         </nav>
+
+        {/* Mobile Menu Button */}
+        <button
+          className="md:hidden text-gray-300 hover:text-white transition-all"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          {menuOpen ? <X size={26} /> : <Menu size={26} />}
+        </button>
       </div>
+
+      {/* Mobile Menu */}
+      {menuOpen && (
+        <div className="md:hidden border-t border-gray-800 bg-gray-900/95 px-6 pb-4">
+          <ul className="flex flex-col gap-3 mt-3">
+            {navItems.map((item) => (
+              <li key={item.id}>
+                <button
+                  onClick={() => handleNavigate(item.id)}
+                  className={`flex items-center gap-2 w-full px-4 py-2 rounded-md transition-all text-sm font-medium ${
+                    current === item.id
+                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                      : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                  }`}
+                >
+                  {item.icon}
+                  {item.label}
+                </button>
+              </li>
+            ))}
+
+            {isAdmin && (
+              <li>
+                <Link
+                  to="/admin/dashboard"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 w-full px-4 py-2 rounded-md text-gray-300 hover:bg-gray-800 hover:text-white text-sm font-medium"
+                >
+                  <Shield size={18} /> Admin
+                </Link>
+              </li>
+            )}
+
+            <li>
+              <input
+                type="text"
+                placeholder="🔍 Search..."
+                className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => handleNavigate("search", e.target.value)}
+              />
+            </li>
+
+            {onLogout && (
+              <li>
+                <button
+                  onClick={() => {
+                    onLogout();
+                    setMenuOpen(false);
+                  }}
+                  className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-red-500 to-pink-500 px-4 py-2 rounded-md text-white font-medium hover:scale-105 transition-all"
+                >
+                  <LogOut size={18} /> Logout
+                </button>
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
     </header>
   );
 }
@@ -234,19 +301,22 @@ function SnippetCard({ snippet, onSelect }) {
 
 
 // ---------------- snippet grid ----------------
-function SnippetGrid({ snippets, onSelect }) {
+import { useState } from "react";
+import SnippetCard from "./SnippetCard"; // assuming you have this component
+
+export default function SnippetGrid({ snippets, onSelect }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const snippetsPerPage = 8; // you can change this
+  const snippetsPerPage = 8; // adjust as needed
 
   if (!snippets || snippets.length === 0) {
     return (
-      <p className="text-center text-gray-400 text-lg w-full">
+      <p className="text-center text-gray-400 text-lg w-full mt-12">
         No snippets to show.
       </p>
     );
   }
 
-  // Calculate pagination
+  // Pagination calculations
   const indexOfLastSnippet = currentPage * snippetsPerPage;
   const indexOfFirstSnippet = indexOfLastSnippet - snippetsPerPage;
   const currentSnippets = snippets.slice(indexOfFirstSnippet, indexOfLastSnippet);
@@ -256,56 +326,60 @@ function SnippetGrid({ snippets, onSelect }) {
   const handlePageChange = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
       setCurrentPage(pageNumber);
+      window.scrollTo({ top: 0, behavior: "smooth" }); // scroll to top on page change
     }
   };
 
   return (
     <div className="w-full">
-      {/* Snippet Cards */}
-      <div className="grid gap-8 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
+      {/* Snippet Cards Grid */}
+      <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {currentSnippets.map((s) => (
           <SnippetCard key={s._id || s.id} snippet={s} onSelect={onSelect} />
         ))}
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex justify-center mt-6 gap-2">
-        <button
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-700"
-        >
-          Prev
-        </button>
-
-        {[...Array(totalPages)].map((_, i) => (
+      {totalPages > 1 && (
+        <div className="flex flex-wrap justify-center items-center gap-2 mt-8">
           <button
-            key={i + 1}
-            onClick={() => handlePageChange(i + 1)}
-            className={`px-4 py-2 rounded-lg ${
-              currentPage === i + 1
-                ? "bg-blue-500 text-white"
-                : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-            }`}
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-700 transition"
           >
-            {i + 1}
+            Prev
           </button>
-        ))}
 
-        <button
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-700"
-        >
-          Next
-        </button>
-      </div>
+          {[...Array(totalPages)].map((_, i) => (
+            <button
+              key={i + 1}
+              onClick={() => handlePageChange(i + 1)}
+              className={`px-4 py-2 rounded-lg transition ${
+                currentPage === i + 1
+                  ? "bg-blue-500 text-white shadow-lg scale-105"
+                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-700 transition"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 
 // ---------------- snippet modal ----------------
+// ---------------- Snippet Modal ----------------
 function SnippetModal({
   snippet,
   onClose,
@@ -319,8 +393,6 @@ function SnippetModal({
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ ...snippet });
   const [comment, setComment] = useState("");
-
-  // ✅ Add to Collection state
   const [showCollections, setShowCollections] = useState(false);
   const [collections, setCollections] = useState([]);
   const [newCollection, setNewCollection] = useState("");
@@ -340,7 +412,6 @@ function SnippetModal({
     };
   }, [snippet]);
 
-  // ✅ Fetch collections when modal opens
   useEffect(() => {
     if (showCollections) fetchCollections();
   }, [showCollections]);
@@ -352,10 +423,7 @@ function SnippetModal({
       const res = await fetch(`${API}/api/collections`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) {
-        const data = await res.json();
-        setCollections(data);
-      }
+      if (res.ok) setCollections(await res.json());
     } catch (err) {
       console.error("fetch collections error:", err);
     }
@@ -363,7 +431,6 @@ function SnippetModal({
 
   if (!snippet) return null;
 
-  // ✅ Copy code
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(snippet.code || "");
@@ -373,7 +440,6 @@ function SnippetModal({
     }
   };
 
-  // ✅ Download code
   const handleDownload = () => {
     const blob = new Blob([snippet.code || ""], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -388,35 +454,28 @@ function SnippetModal({
     URL.revokeObjectURL(url);
   };
 
-  // ✅ Submit edits
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(
-        `${API}/api/snippets/${snippet._id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify(editData),
-        }
-      );
+      const res = await fetch(`${API}/api/snippets/${snippet._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(editData),
+      });
 
       if (res.ok) {
         const updated = await res.json();
         onSnippetUpdate(updated);
         setIsEditing(false);
-      } else {
-        alert("❌ Failed to update snippet");
-      }
+      } else alert("❌ Failed to update snippet");
     } catch (err) {
       console.error(err);
     }
   };
 
-  // ✅ Add snippet to a collection
   const handleAddToCollection = async (collectionId) => {
     try {
       const res = await fetch(
@@ -434,15 +493,12 @@ function SnippetModal({
       if (res.ok) {
         alert("✅ Snippet added to collection!");
         setShowCollections(false);
-      } else {
-        alert("❌ Failed to add to collection");
-      }
+      } else alert("❌ Failed to add to collection");
     } catch (err) {
       console.error("add to collection error:", err);
     }
   };
 
-  // ✅ Create new collection
   const handleCreateCollection = async () => {
     if (!newCollection.trim()) return alert("Enter collection name");
     try {
@@ -457,9 +513,7 @@ function SnippetModal({
       if (res.ok) {
         setNewCollection("");
         fetchCollections();
-      } else {
-        alert("❌ Failed to create collection");
-      }
+      } else alert("❌ Failed to create collection");
     } catch (err) {
       console.error("create collection error:", err);
     }
@@ -472,21 +526,21 @@ function SnippetModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-md flex justify-center items-center z-50"
+      className="fixed inset-0 bg-black/70 backdrop-blur-md flex justify-center items-center z-50 px-2 sm:px-4"
       onClick={onClose}
     >
       <div
-        className="bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-gray-700 w-[95%] max-w-[950px] max-h-[92vh] p-6 flex flex-col overflow-auto"
+        className="bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 rounded-xl shadow-2xl border border-gray-700 w-full max-w-3xl sm:max-w-4xl md:max-w-5xl max-h-[90vh] overflow-y-auto p-4 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
-        <div className="flex items-start justify-between border-b border-gray-700 pb-4">
-          <h3 className="text-2xl font-bold text-blue-400">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 border-b border-gray-700 pb-3">
+          <h3 className="text-xl sm:text-2xl font-bold text-blue-400 break-words">
             {isEditing ? "Edit Snippet" : snippet.title}
           </h3>
           <button
             onClick={onClose}
-            className="text-red-400 hover:text-red-500 font-bold text-lg"
+            className="self-end sm:self-auto text-red-400 hover:text-red-500 font-bold text-xl"
           >
             ✕
           </button>
@@ -494,75 +548,102 @@ function SnippetModal({
 
         {/* EDIT MODE */}
         {isEditing ? (
-          <form onSubmit={handleEditSubmit} className="flex flex-col gap-3 mt-4">
-            {/* Inputs omitted for brevity */}
+          <form
+            onSubmit={handleEditSubmit}
+            className="flex flex-col gap-3 mt-4 text-sm"
+          >
+            <input
+              type="text"
+              placeholder="Title"
+              value={editData.title}
+              onChange={(e) =>
+                setEditData({ ...editData, title: e.target.value })
+              }
+              className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+            />
+            <textarea
+              rows="3"
+              placeholder="Description"
+              value={editData.description}
+              onChange={(e) =>
+                setEditData({ ...editData, description: e.target.value })
+              }
+              className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+            />
+            <textarea
+              rows="8"
+              placeholder="Code..."
+              value={editData.code}
+              onChange={(e) =>
+                setEditData({ ...editData, code: e.target.value })
+              }
+              className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 font-mono text-sm"
+            />
+            <div className="flex flex-wrap gap-3 mt-2">
+              <button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+              >
+                💾 Save
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm"
+              >
+                Cancel
+              </button>
+            </div>
           </form>
         ) : (
           <>
-            <p className="text-sm text-gray-300 mt-2">{snippet.description}</p>
+            {/* Description */}
+            <p className="text-sm text-gray-300 mt-2 break-words">
+              {snippet.description}
+            </p>
 
             {/* CODE BLOCK */}
-            <div className="mt-4 border border-gray-700 rounded-lg bg-gray-900/80">
-              <div className="flex justify-between items-center bg-gray-800/70 px-4 py-2 border-b border-gray-700 rounded-t-lg">
-                <span className="text-xs font-semibold text-blue-400 uppercase">
+            <div className="mt-4 border border-gray-700 rounded-lg bg-gray-900/80 overflow-hidden">
+              <div className="flex justify-between items-center bg-gray-800/70 px-3 py-2 border-b border-gray-700 text-xs sm:text-sm">
+                <span className="font-semibold text-blue-400 uppercase">
                   {snippet.language || "Code"}
                 </span>
                 <button
                   onClick={handleCopy}
-                  className="text-xs text-gray-300 hover:text-white flex items-center gap-1"
+                  className="text-gray-300 hover:text-white flex items-center gap-1"
                 >
                   📋 Copy
                 </button>
               </div>
-              <pre className="m-0 text-sm max-h-[500px] overflow-auto p-4 line-numbers">
-                <code ref={codeRef} className={`language-${prismLang} line-numbers`}>
+              <pre className="m-0 text-xs sm:text-sm max-h-[400px] sm:max-h-[500px] overflow-auto p-3 sm:p-4 line-numbers">
+                <code
+                  ref={codeRef}
+                  className={`language-${prismLang} line-numbers`}
+                >
                   {snippet.code}
                 </code>
               </pre>
-
             </div>
 
             {/* ACTION BUTTONS */}
-            <div className="flex flex-wrap gap-3 mt-4 relative">
+            <div className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3 mt-5">
               <button
                 onClick={() => onLike?.(snippet._id)}
-                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white text-sm"
+                className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-white text-sm flex items-center gap-1"
               >
                 👍 {snippet.likes?.length || 0}
               </button>
 
               <button
                 onClick={handleDownload}
-                className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg text-white text-sm"
+                className="bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg text-white text-sm"
               >
                 ⬇ Download
               </button>
 
-              <div className="flex items-center gap-2 ">
-                    <button
-                      onClick={() => onSyncGithub(snippet._id)}
-                      className="px-2 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md text-sm hover:scale-105 transition"
-                    >
-                      🔄 Sync GitHub
-                    </button>
-
-                    {snippet.gistUrl && (
-                      <a
-                        href={snippet.gistUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 underline text-sm hover:text-blue-300"
-                      >
-                        View on GitHub →
-                      </a>
-                    )}
-                  </div>
-
-
-
               <button
                 onClick={() => setIsEditing(true)}
-                className="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-lg text-white text-sm"
+                className="bg-yellow-500 hover:bg-yellow-600 px-3 py-2 rounded-lg text-white text-sm"
               >
                 ✏ Edit
               </button>
@@ -570,23 +651,42 @@ function SnippetModal({
               {onDelete && (
                 <button
                   onClick={() => onDelete(snippet._id)}
-                  className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-white text-sm"
+                  className="bg-red-500 hover:bg-red-600 px-3 py-2 rounded-lg text-white text-sm"
                 >
                   🗑 Delete
                 </button>
               )}
 
+              {/* 🔄 Sync GitHub */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onSyncGithub(snippet._id)}
+                  className="px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md text-sm hover:scale-105 transition"
+                >
+                  🔄 Sync GitHub
+                </button>
+                {snippet.gistUrl && (
+                  <a
+                    href={snippet.gistUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 underline text-sm hover:text-blue-300"
+                  >
+                    View →
+                  </a>
+                )}
+              </div>
+
               {/* 📂 Add to Collection */}
               <div className="relative">
                 <button
-                  className="bg-teal-600 hover:bg-teal-700 px-4 py-2 rounded-lg text-white text-sm"
                   onClick={() => setShowCollections(!showCollections)}
+                  className="bg-teal-600 hover:bg-teal-700 px-3 py-2 rounded-lg text-white text-sm"
                 >
-                  📂 Add to Collection
+                  📂 Collection
                 </button>
-
                 {showCollections && (
-                  <div className="absolute mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-2 w-60 max-h-60 overflow-y-auto z-10">
+                  <div className="absolute right-0 mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-2 w-52 max-h-56 overflow-y-auto z-10">
                     {collections.length > 0 ? (
                       collections.map((c) => (
                         <button
@@ -602,8 +702,6 @@ function SnippetModal({
                         No collections yet
                       </p>
                     )}
-
-                    {/* ➕ Create New */}
                     <div className="mt-2 border-t border-gray-700 pt-2">
                       <input
                         type="text"
@@ -624,9 +722,9 @@ function SnippetModal({
               </div>
             </div>
 
-            {/* COMMENTS */}
-            <div className="mt-6">
-              {/* Comment section same as before */}
+            {/* COMMENTS SECTION */}
+            <div className="mt-6 text-sm text-gray-300">
+              {/* You can integrate your existing comment section here */}
             </div>
           </>
         )}
@@ -634,6 +732,7 @@ function SnippetModal({
     </div>
   );
 }
+
 
 
 
