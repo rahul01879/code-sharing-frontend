@@ -1,0 +1,14 @@
+/* Prevent horizontal scroll on mobile */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure mobile viewport fits properly */
+#root, main, .container {
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}

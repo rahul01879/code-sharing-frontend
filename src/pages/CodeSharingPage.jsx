@@ -241,35 +241,39 @@ function SnippetCard({ snippet, onSelect }) {
   return (
     <div
       onClick={() => onSelect(snippet._id)}
-      className="group w-full rounded-2xl p-4 sm:p-5 bg-gray-900/80 border border-gray-800 shadow-md hover:shadow-blue-500/30
-                 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.01]
-                 active:scale-[0.99] cursor-pointer"
+      className="group w-full max-w-full mx-auto bg-gray-900/90 border border-gray-800 rounded-xl sm:rounded-2xl 
+                 p-3 sm:p-5 shadow-md hover:shadow-blue-500/30 backdrop-blur-md 
+                 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.01] 
+                 active:scale-[0.99] cursor-pointer box-border"
+      style={{ overflowWrap: "break-word" }} // ensures no overflow
     >
-      {/* --- Header Section (Title + Language) --- */}
+      {/* --- Title & Language --- */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <h3 className="text-lg sm:text-xl font-semibold text-blue-400 group-hover:text-blue-300 transition-all duration-200 line-clamp-1">
+        <h3 className="text-base sm:text-xl font-semibold text-blue-400 group-hover:text-blue-300 transition line-clamp-1">
           {snippet.title}
         </h3>
 
         <span
-          className={`${getBadgeColor(snippet.language)} px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold shadow-sm`}
+          className={`${getBadgeColor(snippet.language)} px-2 sm:px-3 py-0.5 sm:py-1 rounded-full 
+                     text-[10px] sm:text-xs font-semibold shadow-sm`}
         >
           {snippet.language || "N/A"}
         </span>
       </div>
 
       {/* --- Description --- */}
-      <p className="mt-2 text-gray-300 text-sm sm:text-base leading-relaxed line-clamp-2">
+      <p className="mt-2 text-gray-300 text-sm leading-snug line-clamp-2 sm:line-clamp-3">
         {snippet.description || "No description provided."}
       </p>
 
       {/* --- Tags --- */}
       {snippet.tags?.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2">
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {snippet.tags.map((tag, idx) => (
             <span
               key={idx}
-              className="bg-gray-800/90 border border-gray-700 text-gray-300 text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full hover:bg-blue-500/20 transition"
+              className="bg-gray-800/80 text-gray-300 text-[10px] sm:text-xs px-2 py-0.5 rounded-full 
+                         border border-gray-700 hover:bg-blue-500/20 transition"
             >
               #{tag}
             </span>
@@ -277,9 +281,9 @@ function SnippetCard({ snippet, onSelect }) {
         </div>
       )}
 
-      {/* --- Code Preview Box --- */}
-      <div className="mt-4 bg-gray-950/60 border border-gray-800 rounded-xl overflow-hidden shadow-inner">
-        <pre className="m-0 max-h-32 sm:max-h-40 overflow-hidden text-[11px] sm:text-xs p-3 font-mono text-gray-200 leading-relaxed">
+      {/* --- Code Preview --- */}
+      <div className="mt-3 bg-gray-950/70 border border-gray-800 rounded-lg overflow-hidden relative">
+        <pre className="m-0 max-h-28 sm:max-h-40 overflow-hidden text-[10px] sm:text-xs p-2 sm:p-3 font-mono text-gray-200 leading-relaxed">
           <code
             className={`language-${(snippet.language || "javascript").toLowerCase()}`}
           >
@@ -289,26 +293,20 @@ function SnippetCard({ snippet, onSelect }) {
           </code>
         </pre>
 
-        {/* Faded overlay on mobile for long code */}
         {snippet.code?.length > 160 && (
-          <div className="absolute bottom-0 left-0 w-full h-6 bg-gradient-to-t from-gray-950/90 to-transparent pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-full h-6 bg-gradient-to-t from-gray-950/95 to-transparent pointer-events-none"></div>
         )}
       </div>
 
-      {/* --- Footer Section --- */}
-      <div className="mt-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3 sm:gap-0 text-gray-400 text-[12px] sm:text-xs">
-        {/* Left: Date */}
-        <div className="flex items-center gap-1.5">
-          <span>📅</span>
-          <span>{formatDate(snippet.createdAt)}</span>
-        </div>
+      {/* --- Footer --- */}
+      <div className="mt-3 flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-gray-400 text-[11px] sm:text-xs">
+        <div className="flex items-center gap-1">📅 {formatDate(snippet.createdAt)}</div>
 
-        {/* Right: Likes + Author */}
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1 bg-gray-800/80 px-2 py-0.5 rounded-full text-gray-300 hover:text-blue-400 transition">
+          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-0.5 rounded-full">
             👍 {snippet.likes?.length || 0}
           </span>
-          <span className="flex items-center gap-1 bg-gray-800/80 px-2 py-0.5 rounded-full text-gray-300 hover:text-purple-400 transition">
+          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-0.5 rounded-full">
             👤 {snippet.author || "Unknown"}
           </span>
         </div>
