@@ -241,29 +241,35 @@ function SnippetCard({ snippet, onSelect }) {
   return (
     <div
       onClick={() => onSelect(snippet._id)}
-      className="group bg-gradient-to-br from-gray-900/80 via-gray-800/80 to-gray-900/80
-                 border border-gray-700 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-lg
-                 hover:shadow-blue-500/20 backdrop-blur-md transition-all duration-300
-                 transform hover:-translate-y-1 hover:scale-[1.01] sm:hover:-translate-y-2 sm:hover:scale-[1.02]
-                 cursor-pointer w-full"
+      className="group w-full rounded-2xl p-4 sm:p-5 bg-gray-900/80 border border-gray-800 shadow-md hover:shadow-blue-500/30
+                 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.01]
+                 active:scale-[0.99] cursor-pointer"
     >
-      {/* Title */}
-      <h3 className="text-lg sm:text-xl font-semibold sm:font-bold text-blue-400 group-hover:text-blue-300 transition line-clamp-1">
-        {snippet.title}
-      </h3>
+      {/* --- Header Section (Title + Language) --- */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <h3 className="text-lg sm:text-xl font-semibold text-blue-400 group-hover:text-blue-300 transition-all duration-200 line-clamp-1">
+          {snippet.title}
+        </h3>
 
-      {/* Description */}
-      <p className="text-gray-300 text-xs sm:text-sm mt-1 sm:mt-2 line-clamp-2 leading-relaxed">
+        <span
+          className={`${getBadgeColor(snippet.language)} px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold shadow-sm`}
+        >
+          {snippet.language || "N/A"}
+        </span>
+      </div>
+
+      {/* --- Description --- */}
+      <p className="mt-2 text-gray-300 text-sm sm:text-base leading-relaxed line-clamp-2">
         {snippet.description || "No description provided."}
       </p>
 
-      {/* Tags */}
+      {/* --- Tags --- */}
       {snippet.tags?.length > 0 && (
-        <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
+        <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2">
           {snippet.tags.map((tag, idx) => (
             <span
               key={idx}
-              className="bg-gray-800 text-gray-300 text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 rounded-full"
+              className="bg-gray-800/90 border border-gray-700 text-gray-300 text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full hover:bg-blue-500/20 transition"
             >
               #{tag}
             </span>
@@ -271,20 +277,9 @@ function SnippetCard({ snippet, onSelect }) {
         </div>
       )}
 
-      {/* Language */}
-      <div className="mt-2 sm:mt-3">
-        <span
-          className={`${getBadgeColor(
-            snippet.language
-          )} px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold shadow-md`}
-        >
-          {snippet.language || "N/A"}
-        </span>
-      </div>
-
-      {/* Code Preview */}
-      <div className="mt-3 sm:mt-4 bg-gray-900/70 border border-gray-700 rounded-lg overflow-hidden">
-        <pre className="m-0 max-h-24 sm:max-h-32 overflow-hidden text-[11px] sm:text-xs p-2 sm:p-3 font-mono">
+      {/* --- Code Preview Box --- */}
+      <div className="mt-4 bg-gray-950/60 border border-gray-800 rounded-xl overflow-hidden shadow-inner">
+        <pre className="m-0 max-h-32 sm:max-h-40 overflow-hidden text-[11px] sm:text-xs p-3 font-mono text-gray-200 leading-relaxed">
           <code
             className={`language-${(snippet.language || "javascript").toLowerCase()}`}
           >
@@ -293,22 +288,35 @@ function SnippetCard({ snippet, onSelect }) {
               : snippet.code}
           </code>
         </pre>
+
+        {/* Faded overlay on mobile for long code */}
+        {snippet.code?.length > 160 && (
+          <div className="absolute bottom-0 left-0 w-full h-6 bg-gradient-to-t from-gray-950/90 to-transparent pointer-events-none"></div>
+        )}
       </div>
 
-      {/* Footer */}
-      <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row justify-between sm:items-center gap-2 sm:gap-0 text-[11px] sm:text-xs text-gray-400">
-        <span className="flex items-center gap-1">📅 {formatDate(snippet.createdAt)}</span>
+      {/* --- Footer Section --- */}
+      <div className="mt-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3 sm:gap-0 text-gray-400 text-[12px] sm:text-xs">
+        {/* Left: Date */}
+        <div className="flex items-center gap-1.5">
+          <span>📅</span>
+          <span>{formatDate(snippet.createdAt)}</span>
+        </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <span className="flex items-center gap-1">👍 {snippet.likes?.length || 0}</span>
-          {/* Uncomment if you want comment count */}
-          {/* <span className="flex items-center gap-1">💬 {snippet.comments?.length || 0}</span> */}
-          <span className="flex items-center gap-1">👤 {snippet.author || "Unknown"}</span>
+        {/* Right: Likes + Author */}
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1 bg-gray-800/80 px-2 py-0.5 rounded-full text-gray-300 hover:text-blue-400 transition">
+            👍 {snippet.likes?.length || 0}
+          </span>
+          <span className="flex items-center gap-1 bg-gray-800/80 px-2 py-0.5 rounded-full text-gray-300 hover:text-purple-400 transition">
+            👤 {snippet.author || "Unknown"}
+          </span>
         </div>
       </div>
     </div>
   );
 }
+
 
 
 
