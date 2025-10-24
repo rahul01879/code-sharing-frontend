@@ -76,27 +76,32 @@ function timeAgo(date) {
   }
   return "just now";
 }
+
+
+// ---------------- Header ----------------
 function Header({ current, onNavigate, onLogout }) {
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
 
   const navItems = [
     { id: "home", label: "Home", icon: <Home size={18} /> },
     { id: "add", label: "Add Snippet", icon: <PlusSquare size={18} /> },
     { id: "my-snippets", label: "My Snippets", icon: <FileText size={18} /> },
-    { id: "collections", label: "Collections", icon: <FileText size={18} /> },
+    { id: "collections", label: "Collections", icon: <Folder size={18} /> },
     { id: "profile", label: "Profile", icon: <User size={18} /> },
   ];
 
   const handleNavigate = (id, value) => {
     onNavigate?.(id, value);
     setMenuOpen(false);
+    setShowSearch(false);
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-gray-950/80 backdrop-blur-xl border-b border-gray-800 shadow-lg">
-      <div className="flex items-center justify-between px-5 sm:px-8 py-4">
+    <header className="sticky top-0 z-50 w-full bg-gray-950/80 backdrop-blur-md border-b border-gray-800 shadow-md">
+      <div className="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4">
         {/* --- LOGO --- */}
         <button
           onClick={() => handleNavigate("home")}
@@ -106,7 +111,7 @@ function Header({ current, onNavigate, onLogout }) {
         </button>
 
         {/* --- DESKTOP NAV --- */}
-        <nav className="hidden md:flex items-center gap-4">
+        <nav className="hidden md:flex items-center gap-3 lg:gap-4">
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -114,7 +119,7 @@ function Header({ current, onNavigate, onLogout }) {
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                 current === item.id
                   ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
-                  : "text-gray-300 hover:text-white hover:bg-gray-800"
+                  : "text-gray-300 hover:text-white hover:bg-gray-800/70"
               }`}
             >
               {item.icon}
@@ -125,19 +130,22 @@ function Header({ current, onNavigate, onLogout }) {
           {isAdmin && (
             <Link
               to="/admin/dashboard"
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-all"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-300 hover:bg-gray-800/70 hover:text-white transition-all"
             >
               <Shield size={18} /> Admin
             </Link>
           )}
 
-          {/* Search bar (desktop only) */}
-          <div className="relative ml-4">
-            <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
+          {/* --- Search (Desktop) --- */}
+          <div className="relative ml-3">
+            <Search
+              size={16}
+              className="absolute left-3 top-2.5 text-gray-400"
+            />
             <input
               type="text"
               placeholder="Search snippets..."
-              className="pl-9 pr-4 py-2 rounded-full bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-9 pr-4 py-2 rounded-full bg-gray-800/80 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 lg:w-64 transition-all"
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -146,47 +154,68 @@ function Header({ current, onNavigate, onLogout }) {
             />
           </div>
 
+          {/* --- Logout --- */}
           {onLogout && (
             <button
               onClick={onLogout}
-              className="flex items-center gap-2 ml-3 px-4 py-2 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium text-sm shadow-md hover:scale-105 transition-all duration-300"
+              className="flex items-center gap-2 ml-3 px-4 py-2 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium text-sm shadow-md hover:scale-105 transition-all"
             >
               <LogOut size={18} /> Logout
             </button>
           )}
         </nav>
 
-        {/* --- MOBILE MENU BUTTON --- */}
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="md:hidden text-gray-300 hover:text-white transition-transform duration-200"
-        >
-          {menuOpen ? <X size={28} /> : <Menu size={28} />}
-        </button>
+        {/* --- MOBILE BUTTONS --- */}
+        <div className="flex items-center gap-3 md:hidden">
+          {/* Mobile Search Icon */}
+          <button
+            onClick={() => setShowSearch((prev) => !prev)}
+            className="text-gray-300 hover:text-white p-1.5 rounded-full transition"
+          >
+            <Search size={24} />
+          </button>
+
+          {/* Mobile Menu Toggle */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="text-gray-300 hover:text-white p-1.5 rounded-full transition"
+          >
+            {menuOpen ? <X size={26} /> : <Menu size={26} />}
+          </button>
+        </div>
       </div>
 
-      {/* --- MOBILE NAV DROPDOWN --- */}
+      {/* --- MOBILE SEARCH BAR --- */}
+      <div
+        className={`md:hidden transition-all duration-300 overflow-hidden bg-gray-900/95 border-t border-gray-800 ${
+          showSearch ? "max-h-20 opacity-100 py-3" : "max-h-0 opacity-0 py-0"
+        }`}
+      >
+        <div className="relative px-4">
+          <Search
+            size={18}
+            className="absolute left-3 top-2.5 text-gray-400"
+          />
+          <input
+            type="text"
+            placeholder="Search snippets..."
+            className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              handleNavigate("search", e.target.value);
+            }}
+          />
+        </div>
+      </div>
+
+      {/* --- MOBILE MENU --- */}
       <div
         className={`md:hidden overflow-hidden transition-all duration-300 ${
           menuOpen ? "max-h-[450px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <ul className="flex flex-col gap-3 bg-gray-900/95 px-6 py-4 border-t border-gray-800 rounded-b-2xl">
-          {/* Search Bar */}
-          <li className="relative">
-            <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full pl-9 pr-4 py-2 rounded-md bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                handleNavigate("search", e.target.value);
-              }}
-            />
-          </li>
-
+        <ul className="flex flex-col gap-3 bg-gray-900/95 px-5 py-4 border-t border-gray-800 rounded-b-2xl">
           {navItems.map((item) => (
             <li key={item.id}>
               <button
