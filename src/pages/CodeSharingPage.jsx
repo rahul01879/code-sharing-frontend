@@ -270,20 +270,22 @@ function SnippetCard({ snippet, onSelect }) {
   return (
     <div
       onClick={() => onSelect(snippet._id)}
-      className="group w-full max-w-full mx-auto bg-gray-900/90 border border-gray-800 rounded-xl sm:rounded-2xl 
-                 p-3 sm:p-5 shadow-md hover:shadow-blue-500/30 backdrop-blur-md 
+      className="group w-full max-w-full mx-auto bg-gray-900/95 border border-gray-800 rounded-2xl 
+                 p-3 sm:p-5 shadow-md hover:shadow-blue-500/20 backdrop-blur-md 
                  transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.01] 
                  active:scale-[0.99] cursor-pointer box-border"
-      style={{ overflowWrap: "break-word" }} // ensures no overflow
+      style={{ overflowWrap: "break-word" }}
     >
       {/* --- Title & Language --- */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <h3 className="text-base sm:text-xl font-semibold text-blue-400 group-hover:text-blue-300 transition line-clamp-1">
+        <h3 className="text-base sm:text-lg font-semibold text-blue-400 group-hover:text-blue-300 transition line-clamp-1">
           {snippet.title}
         </h3>
 
         <span
-          className={`${getBadgeColor(snippet.language)} px-2 sm:px-3 py-0.5 sm:py-1 rounded-full 
+          className={`${getBadgeColor(
+            snippet.language
+          )} px-2 sm:px-3 py-0.5 sm:py-1 rounded-full 
                      text-[10px] sm:text-xs font-semibold shadow-sm`}
         >
           {snippet.language || "N/A"}
@@ -291,7 +293,7 @@ function SnippetCard({ snippet, onSelect }) {
       </div>
 
       {/* --- Description --- */}
-      <p className="mt-2 text-gray-300 text-sm leading-snug line-clamp-2 sm:line-clamp-3">
+      <p className="mt-1.5 text-gray-300 text-sm leading-snug line-clamp-2 sm:line-clamp-3">
         {snippet.description || "No description provided."}
       </p>
 
@@ -311,18 +313,18 @@ function SnippetCard({ snippet, onSelect }) {
       )}
 
       {/* --- Code Preview --- */}
-      <div className="mt-3 bg-gray-950/70 border border-gray-800 rounded-lg overflow-hidden relative">
+      <div className="mt-3 bg-gray-950/80 border border-gray-800 rounded-lg overflow-hidden relative">
         <pre className="m-0 max-h-28 sm:max-h-40 overflow-hidden text-[10px] sm:text-xs p-2 sm:p-3 font-mono text-gray-200 leading-relaxed">
           <code
             className={`language-${(snippet.language || "javascript").toLowerCase()}`}
           >
-            {snippet.code?.length > 160
-              ? snippet.code.slice(0, 160) + "..."
+            {snippet.code?.length > 180
+              ? snippet.code.slice(0, 180) + "..."
               : snippet.code}
           </code>
         </pre>
 
-        {snippet.code?.length > 160 && (
+        {snippet.code?.length > 180 && (
           <div className="absolute bottom-0 left-0 w-full h-6 bg-gradient-to-t from-gray-950/95 to-transparent pointer-events-none"></div>
         )}
       </div>
@@ -331,7 +333,7 @@ function SnippetCard({ snippet, onSelect }) {
       <div className="mt-3 flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-gray-400 text-[11px] sm:text-xs">
         <div className="flex items-center gap-1">📅 {formatDate(snippet.createdAt)}</div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-0.5 rounded-full">
             👍 {snippet.likes?.length || 0}
           </span>
@@ -343,6 +345,7 @@ function SnippetCard({ snippet, onSelect }) {
     </div>
   );
 }
+
 
 
 
