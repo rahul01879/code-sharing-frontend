@@ -463,6 +463,7 @@ function SnippetModal({
   onLike,
   onComment,
   onSyncGithub,
+  onTagClick,
 }) {
   const codeRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -613,6 +614,13 @@ function SnippetModal({
     }
   };
 
+  const handleTagClick = (tag) => {
+  onClose(); // close modal
+  if (onTagClick) onTagClick(tag); // notify parent to filter by tag
+};
+
+
+
   const handleCreateCollection = async () => {
     if (!newCollection.trim()) return alert("Enter collection name");
     try {
@@ -708,6 +716,25 @@ function SnippetModal({
               }
               className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 font-mono text-sm"
             />
+            {/* Tags Input */}
+              <input
+                type="text"
+                placeholder="Enter tags (comma separated)"
+                value={editData.tags?.join(", ") || ""}
+                onChange={(e) =>
+                  setEditData({
+                    ...editData,
+                    tags: e.target.value
+                      .split(",")
+                      .map((t) => t.trim())
+                      .filter(Boolean),
+                  })
+                }
+                className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 text-sm"
+                style={{ marginTop: "4px" }}
+              />
+
+
             <div className="flex flex-wrap gap-3 mt-2">
               <button
                 type="submit"
@@ -730,6 +757,22 @@ function SnippetModal({
             <p className="text-sm text-gray-300 mt-2 break-words">
               {snippet.description}
             </p>
+
+
+            {/* TAGS */}
+            {snippet.tags && snippet.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {snippet.tags.map((tag, i) => (
+                  <span
+                    key={i}
+                    onClick={() => handleTagClick(tag)}
+                    className="cursor-pointer text-xs bg-blue-600/20 text-blue-400 px-2 py-1 rounded-md hover:bg-blue-600/40 transition"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
 
             
            {/* CODE BLOCK */}
@@ -1870,6 +1913,22 @@ export default function CodeSharingPage({ onLogout }) {
       }
     };
 
+    // ========================= Tag Filtering =========================
+      const fetchSnippetsByTag = async (tag) => {
+        if (!tag) return;
+
+        try {
+          // Optionally set a loading state here if you have one
+          const res = await axios.get(`${API}/api/snippets/search?q=${encodeURIComponent(tag)}`);
+          setPage("search"); // reuse your existing search results page
+          setSearchQuery(tag);
+          setSearchResults(res.data || []);
+        } catch (err) {
+          console.error("tag filter error:", err);
+        }
+      };
+
+
   // ========================= Render =========================
   return (
     <div className="min-h-screen w-full bg-gray-950 text-gray-200">
@@ -1931,6 +1990,7 @@ export default function CodeSharingPage({ onLogout }) {
           onLike={handleLike}
           onComment={handleComment}
           onSyncGithub={handleSyncGithub}
+          onTagClick={(tag) => fetchSnippetsByTag(tag)}
         />
       </main>
       <Footer />
