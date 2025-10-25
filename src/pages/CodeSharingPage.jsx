@@ -21,7 +21,9 @@ import "prismjs/components/prism-cpp";
 import "prismjs/components/prism-java";
 import "prismjs/components/prism-ruby";
 import { FaUser, FaEnvelope, FaCode, FaGithub, FaCalendarAlt, FaExternalLinkAlt } from "react-icons/fa";
-import { Home, PlusSquare, FileText, User, LogOut, Shield, FolderOpen, Edit2, Trash2, ArrowLeft, Github, Twitter, Linkedin, Mail, Code2, Menu, X , Search, Folder } from "lucide-react";
+import { Home, PlusSquare, FileText, User, LogOut, Shield, FolderOpen,
+         Edit2, Trash2, ArrowLeft, Github, Twitter, Linkedin, Mail, Code2, Menu,
+          X , Search, Folder,  Eye, MessageCircle, ThumbsUp } from "lucide-react";
 
 
 
@@ -267,6 +269,7 @@ function Header({ current, onNavigate, onLogout }) {
 
 
 
+
 // ---------------- Snippet Card ----------------
 function SnippetCard({ snippet, onSelect }) {
   return (
@@ -335,29 +338,30 @@ function SnippetCard({ snippet, onSelect }) {
 
         <div className="flex items-center gap-3 sm:gap-4 text-gray-400">
           {/* Likes */}
-          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
-            👍 {snippet.likes?.length || 0}
+          <span className="flex items-center gap-1.5 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
+            <ThumbsUp size={13} className="text-blue-400" /> {snippet.likes?.length || 0}
           </span>
 
           {/* Comments */}
-          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
-            💬 {snippet.comments?.length || 0}
+          <span className="flex items-center gap-1.5 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
+            <MessageCircle size={13} className="text-green-400" /> {snippet.comments?.length || 0}
           </span>
 
-          {/* Views */}
-          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
-            👁️ {snippet.views || 0}
+          {/* Views (modern eye icon) */}
+          <span className="flex items-center gap-1.5 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
+            <Eye size={13} className="text-cyan-400" /> {snippet.views || 0}
           </span>
 
           {/* Author */}
-          <span className="hidden sm:flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
-            👤 {snippet.author || "Unknown"}
+          <span className="hidden sm:flex items-center gap-1.5 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
+            <User size={13} className="text-purple-400" /> {snippet.author || "Unknown"}
           </span>
         </div>
       </div>
     </div>
   );
 }
+
 
 
 
