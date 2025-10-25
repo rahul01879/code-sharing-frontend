@@ -23,7 +23,7 @@ import "prismjs/components/prism-ruby";
 import { FaUser, FaEnvelope, FaCode, FaGithub, FaCalendarAlt, FaExternalLinkAlt } from "react-icons/fa";
 import { Home, PlusSquare, FileText, User, LogOut, Shield, FolderOpen,
          Edit2, Trash2, ArrowLeft, Github, Twitter, Linkedin, Mail, Code2, Menu,
-          X , Search, Folder,  Eye, MessageCircle, ThumbsUp } from "lucide-react";
+          X , Search, Folder,  Eye, Heart, MessageSquare } from "lucide-react";
 
 
 
@@ -270,45 +270,46 @@ function Header({ current, onNavigate, onLogout }) {
 
 
 
-// ---------------- Snippet Card ----------------
+
 function SnippetCard({ snippet, onSelect }) {
   return (
     <div
       onClick={() => onSelect(snippet._id)}
-      className="group w-full mx-auto bg-gray-900 border border-gray-800 rounded-2xl 
-                 p-3 sm:p-5 shadow-md hover:shadow-blue-500/20 backdrop-blur-md
-                 transition-all duration-300 ease-out hover:-translate-y-[2px] hover:scale-[1.01]
-                 active:scale-[0.98] cursor-pointer box-border overflow-hidden
-                 max-w-[100vw]"
+      className="group w-full bg-gradient-to-b from-gray-900/90 to-gray-950/95 
+                 border border-gray-800 rounded-2xl p-5 sm:p-6 
+                 shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_25px_rgba(59,130,246,0.25)]
+                 transition-all duration-300 ease-out 
+                 hover:-translate-y-[3px] hover:scale-[1.01] cursor-pointer 
+                 overflow-hidden backdrop-blur-sm"
       style={{ overflowWrap: "break-word" }}
     >
-      {/* --- Header (Title + Language) --- */}
-      <div className="flex flex-wrap justify-between items-center gap-2">
-        <h3 className="text-base sm:text-lg font-semibold text-blue-400 group-hover:text-blue-300 transition line-clamp-1 break-words">
+      {/* --- Header (Title & Language) --- */}
+      <div className="flex flex-wrap justify-between items-center mb-2">
+        <h3 className="text-lg sm:text-xl font-semibold text-blue-400 group-hover:text-blue-300 transition-colors duration-300 line-clamp-1">
           {snippet.title}
         </h3>
 
         <span
           className={`${getBadgeColor(
             snippet.language
-          )} px-2 sm:px-3 py-[2px] sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold`}
+          )} px-3 py-[3px] rounded-full text-[11px] sm:text-xs font-medium uppercase tracking-wide`}
         >
           {snippet.language || "N/A"}
         </span>
       </div>
 
       {/* --- Description --- */}
-      <p className="mt-1 text-gray-300 text-sm sm:text-base leading-snug line-clamp-2 sm:line-clamp-3">
+      <p className="text-gray-300 text-sm sm:text-base leading-snug mb-3 line-clamp-2">
         {snippet.description || "No description provided."}
       </p>
 
       {/* --- Tags --- */}
       {snippet.tags?.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 mb-4">
           {snippet.tags.map((tag, idx) => (
             <span
               key={idx}
-              className="bg-gray-800 text-gray-300 text-[10px] sm:text-xs px-2 py-[2px] rounded-full border border-gray-700 hover:bg-blue-500/20 transition"
+              className="bg-gray-800/60 text-gray-300 text-[11px] sm:text-xs px-2 py-[2px] rounded-full border border-gray-700/70 hover:bg-blue-500/20 transition-all"
             >
               #{tag}
             </span>
@@ -317,45 +318,50 @@ function SnippetCard({ snippet, onSelect }) {
       )}
 
       {/* --- Code Preview --- */}
-      <div className="mt-3 bg-gray-950/80 border border-gray-800 rounded-lg overflow-hidden relative">
-        <pre className="m-0 max-h-32 sm:max-h-40 overflow-hidden text-[11px] sm:text-xs p-2 sm:p-3 font-mono text-gray-200 leading-relaxed">
+      <div className="relative bg-gray-950/80 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between bg-gray-900/70 px-3 py-2 border-b border-gray-800 text-gray-400 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <Code2 size={14} />
+            <span className="font-medium">{snippet.language || "code"}</span>
+          </div>
+        </div>
+
+        <pre className="max-h-36 overflow-hidden text-[11px] sm:text-xs p-3 font-mono text-gray-200 leading-relaxed">
           <code className={`language-${(snippet.language || "javascript").toLowerCase()}`}>
-            {snippet.code?.length > 180
-              ? snippet.code.slice(0, 180) + "..."
+            {snippet.code?.length > 200
+              ? snippet.code.slice(0, 200) + "..."
               : snippet.code}
           </code>
         </pre>
-        {snippet.code?.length > 180 && (
-          <div className="absolute bottom-0 left-0 w-full h-6 bg-gradient-to-t from-gray-950/95 to-transparent pointer-events-none"></div>
+
+        {snippet.code?.length > 200 && (
+          <div className="absolute bottom-0 left-0 w-full h-10 bg-gradient-to-t from-gray-950/90 to-transparent pointer-events-none" />
         )}
       </div>
 
-      {/* --- Footer --- */}
-      <div className="mt-4 flex flex-wrap justify-between items-center text-gray-400 text-[11px] sm:text-xs">
-        <div className="flex items-center gap-1">
-          📅 {formatDate(snippet.createdAt)}
+      {/* --- Footer (Likes, Comments, Views) --- */}
+      <div className="mt-4 flex flex-wrap justify-between items-center text-gray-400 text-[12px] sm:text-sm">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full">
+            <Heart size={13} className="text-pink-500" />
+            {snippet.likes?.length || 0}
+          </span>
+
+          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full">
+            <MessageSquare size={13} className="text-blue-400" />
+            {snippet.comments?.length || 0}
+          </span>
+
+          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full">
+            <Eye size={13} className="text-green-400" />
+            {snippet.views || 0}
+          </span>
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4 text-gray-400">
-          {/* Likes */}
-          <span className="flex items-center gap-1.5 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
-            <ThumbsUp size={13} className="text-blue-400" /> {snippet.likes?.length || 0}
-          </span>
-
-          {/* Comments */}
-          <span className="flex items-center gap-1.5 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
-            <MessageCircle size={13} className="text-green-400" /> {snippet.comments?.length || 0}
-          </span>
-
-          {/* Views (modern eye icon) */}
-          <span className="flex items-center gap-1.5 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
-            <Eye size={13} className="text-cyan-400" /> {snippet.views || 0}
-          </span>
-
-          {/* Author */}
-          <span className="hidden sm:flex items-center gap-1.5 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
-            <User size={13} className="text-purple-400" /> {snippet.author || "Unknown"}
-          </span>
+        <div className="flex items-center gap-2 text-gray-500">
+          <span className="truncate max-w-[100px] sm:max-w-[150px]">{snippet.author || "Unknown"}</span>
+          <span className="text-gray-600">•</span>
+          <span>{formatDate(snippet.createdAt)}</span>
         </div>
       </div>
     </div>
