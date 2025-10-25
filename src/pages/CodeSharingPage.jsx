@@ -1370,24 +1370,24 @@ function Footer() {
             <h3 className="text-white font-semibold mb-3">Quick Links</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="/" className="hover:text-blue-400 transition">
+                <Link to="/" className="hover:text-blue-400 transition">
                   Home
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/add" className="hover:text-blue-400 transition">
+                <Link to="/add" className="hover:text-blue-400 transition">
                   Add Snippet
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/collections" className="hover:text-blue-400 transition">
+                <Link to="/collections" className="hover:text-blue-400 transition">
                   Collections
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/profile" className="hover:text-blue-400 transition">
+                <Link to="/profile" className="hover:text-blue-400 transition">
                   Profile
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -1397,24 +1397,24 @@ function Footer() {
             <h3 className="text-white font-semibold mb-3">Resources</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="/docs" className="hover:text-blue-400 transition">
+                <Link to="/docs" className="hover:text-blue-400 transition">
                   Documentation
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/faq" className="hover:text-blue-400 transition">
+                <Link to="/faq" className="hover:text-blue-400 transition">
                   FAQs
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/privacy" className="hover:text-blue-400 transition">
+                <Link to="/privacy" className="hover:text-blue-400 transition">
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/terms" className="hover:text-blue-400 transition">
+                <Link to="/terms" className="hover:text-blue-400 transition">
                   Terms of Service
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

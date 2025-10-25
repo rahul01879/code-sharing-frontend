@@ -20,6 +20,12 @@ import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminSnippetsPage from "./pages/AdminSnippetsPage";
 import AdminGithubUsersPage from "./pages/AdminGithubUsersPage";
 
+import Docs from "./pages/Docs";
+import FAQ from "./pages/FAQ";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+
+
 // ✅ Route Protector
 import AdminRoute from "./components/AdminRoute";
 
@@ -186,6 +192,12 @@ export default function App() {
           path="*"
           element={<Navigate to={token ? "/" : "/login"} replace />}
         />
+
+        <Route path="/docs" element={<Docs />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+
       </Routes>
     </Router>
   );
