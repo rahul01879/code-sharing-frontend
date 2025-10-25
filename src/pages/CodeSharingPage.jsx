@@ -475,36 +475,56 @@ function SnippetModal({
   const [newCollection, setNewCollection] = useState("");
 
     useEffect(() => {
-      if (!snippet) return;
-      setEditData({ ...snippet });
+  if (!snippet) return;
+  setEditData({ ...snippet });
 
-      // ✅ Record a view only once per user per snippet
-      const recordView = async () => {
-        try {
-          const viewedSnippets = JSON.parse(localStorage.getItem("viewedSnippets") || "[]");
-          if (!viewedSnippets.includes(snippet._id)) {
-            await fetch(`${API}/api/snippets/${snippet._id}/view`, { method: "POST" });
-            viewedSnippets.push(snippet._id);
-            localStorage.setItem("viewedSnippets", JSON.stringify(viewedSnippets));
-          }
-        } catch (err) {
-          console.error("Error recording view:", err);
-        }
-      };
+  // ✅ Record a view only once per user per snippet (safe version)
+  const recordView = async () => {
+    try {
+      // Read local cache safely
+      let viewedSnippets = [];
+      try {
+        viewedSnippets = JSON.parse(localStorage.getItem("viewedSnippets")) || [];
+      } catch {
+        localStorage.removeItem("viewedSnippets"); // reset if broken JSON
+        viewedSnippets = [];
+      }
 
-      recordView();
+      // Skip if already viewed
+      if (viewedSnippets.includes(snippet._id)) return;
 
+      // Send view count update
+      const res = await fetch(`${API}/api/snippets/${snippet._id}/view`, { method: "POST" });
+      if (!res.ok) {
+        console.warn("⚠️ View record failed:", res.status);
+        return;
+      }
 
-    const t = setTimeout(() => {
-      if (codeRef.current) Prism.highlightElement(codeRef.current);
-    }, 20);
+      // Cache locally so it’s not counted again
+      viewedSnippets.push(snippet._id);
+      localStorage.setItem("viewedSnippets", JSON.stringify(viewedSnippets));
 
-    document.body.style.overflow = "hidden";
-    return () => {
-      clearTimeout(t);
-      document.body.style.overflow = "auto";
-    };
-  }, [snippet]);
+      console.log("✅ View recorded for snippet:", snippet._id);
+    } catch (err) {
+      console.error("Error recording view:", err);
+    }
+  };
+
+  recordView();
+
+  // Highlight code
+  const t = setTimeout(() => {
+    if (codeRef.current) Prism.highlightElement(codeRef.current);
+  }, 20);
+
+  // Prevent background scrolling
+  document.body.style.overflow = "hidden";
+  return () => {
+    clearTimeout(t);
+    document.body.style.overflow = "auto";
+  };
+}, [snippet]);
+
 
   useEffect(() => {
     if (showCollections) fetchCollections();
