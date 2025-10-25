@@ -343,20 +343,20 @@ function SnippetCard({ snippet, onSelect }) {
       {/* --- Footer (Likes, Comments, Views, Author, Date) --- */}
       <div className="mt-4 flex flex-wrap justify-between items-center text-gray-400 text-[12px] sm:text-sm">
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
-            <FaHeart size={12} className="text-pink-500" />
-            {snippet.likes?.length || 0}
-          </span>
+            <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
+              <Heart size={14} className="text-pink-500" />
+              {snippet.likes?.length || 0}
+            </span>
 
-          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
-            <FaCommentDots size={12} className="text-blue-400" />
-            {snippet.comments?.length || 0}
-          </span>
+            <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
+              <MessageSquare size={14} className="text-blue-400" />
+              {snippet.comments?.length || 0}
+            </span>
 
-          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
-            <FaEye size={12} className="text-green-400" />
-            {snippet.views || 0}
-          </span>
+            <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
+              <Eye size={14} className="text-green-400" />
+              {snippet.views || 0}
+            </span>
         </div>
 
         <div className="flex items-center gap-2 text-gray-500">
