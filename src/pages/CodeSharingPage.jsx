@@ -474,19 +474,24 @@ function SnippetModal({
   const [collections, setCollections] = useState([]);
   const [newCollection, setNewCollection] = useState("");
 
-  useEffect(() => {
-    if (!snippet) return;
-    setEditData({ ...snippet });
+    useEffect(() => {
+      if (!snippet) return;
+      setEditData({ ...snippet });
 
-
-      // Record a view when modal opens
+      // ✅ Record a view only once per user per snippet
       const recordView = async () => {
         try {
-          await fetch(`${API}/api/snippets/${snippet._id}/view`, { method: "POST" });
+          const viewedSnippets = JSON.parse(localStorage.getItem("viewedSnippets") || "[]");
+          if (!viewedSnippets.includes(snippet._id)) {
+            await fetch(`${API}/api/snippets/${snippet._id}/view`, { method: "POST" });
+            viewedSnippets.push(snippet._id);
+            localStorage.setItem("viewedSnippets", JSON.stringify(viewedSnippets));
+          }
         } catch (err) {
           console.error("Error recording view:", err);
         }
       };
+
       recordView();
 
 
