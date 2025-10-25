@@ -631,16 +631,17 @@ function SnippetModal({
             {!isEditing && (
               <div className="flex items-center gap-4 text-gray-400 text-sm mt-2">
                 <span className="flex items-center gap-1">
-                  <FaEye className="text-blue-400" /> {snippet.views || 0}
+                  <Eye className="text-blue-400" size={14} /> {snippet.views || 0}
                 </span>
                 <span className="flex items-center gap-1">
-                  <FaHeart className="text-pink-500" /> {snippet.likes?.length || 0}
+                  <Heart className="text-pink-500" size={14} /> {snippet.likes?.length || 0}
                 </span>
                 <span className="flex items-center gap-1">
-                  <FaComment className="text-green-400" /> {snippet.comments?.length || 0}
+                  <MessageSquare className="text-green-400" size={14} /> {snippet.comments?.length || 0}
                 </span>
               </div>
             )}
+
           <button
             onClick={onClose}
             className="self-end sm:self-auto text-red-400 hover:text-red-500 font-bold text-xl"
