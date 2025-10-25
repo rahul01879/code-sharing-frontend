@@ -271,8 +271,7 @@ function Header({ current, onNavigate, onLogout }) {
 
 
 
-
-function SnippetCard({ snippet, onSelect }) {
+function SnippetCard({ snippet, onSelect, onTagClick }) {
   return (
     <div
       onClick={() => onSelect(snippet._id)}
@@ -306,11 +305,15 @@ function SnippetCard({ snippet, onSelect }) {
 
       {/* --- Tags --- */}
       {snippet.tags?.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
+        <div
+          className="flex flex-wrap gap-1.5 mb-4"
+          onClick={(e) => e.stopPropagation()} // ✅ Prevent card click when tag clicked
+        >
           {snippet.tags.map((tag, idx) => (
             <span
               key={idx}
-              className="bg-gray-800/60 text-gray-300 text-[11px] sm:text-xs px-2 py-[2px] rounded-full border border-gray-700/70 hover:bg-blue-500/20 transition-all"
+              onClick={() => onTagClick?.(tag)} // ✅ Filter by tag
+              className="bg-gray-800/60 text-gray-300 text-[11px] sm:text-xs px-2 py-[2px] rounded-full border border-gray-700/70 hover:bg-blue-500/30 hover:text-blue-300 transition-all cursor-pointer"
             >
               #{tag}
             </span>
@@ -343,20 +346,20 @@ function SnippetCard({ snippet, onSelect }) {
       {/* --- Footer (Likes, Comments, Views, Author, Date) --- */}
       <div className="mt-4 flex flex-wrap justify-between items-center text-gray-400 text-[12px] sm:text-sm">
         <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
-              <Heart size={14} className="text-pink-500" />
-              {snippet.likes?.length || 0}
-            </span>
+          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
+            <Heart size={14} className="text-pink-500" />
+            {snippet.likes?.length || 0}
+          </span>
 
-            <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
-              <MessageSquare size={14} className="text-blue-400" />
-              {snippet.comments?.length || 0}
-            </span>
+          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
+            <MessageSquare size={14} className="text-blue-400" />
+            {snippet.comments?.length || 0}
+          </span>
 
-            <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
-              <Eye size={14} className="text-green-400" />
-              {snippet.views || 0}
-            </span>
+          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
+            <Eye size={14} className="text-green-400" />
+            {snippet.views || 0}
+          </span>
         </div>
 
         <div className="flex items-center gap-2 text-gray-500">
@@ -370,6 +373,7 @@ function SnippetCard({ snippet, onSelect }) {
     </div>
   );
 }
+
 
 
 
@@ -410,7 +414,7 @@ function SnippetGrid({ snippets, onSelect }) {
       {/* Snippet Cards Grid */}
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {currentSnippets.map((s) => (
-          <SnippetCard key={s._id || s.id} snippet={s} onSelect={onSelect} />
+          <SnippetCard key={s._id || s.id} snippet={s} onSelect={onSelect} nTagClick={onTagClick}/>
         ))}
       </div>
 
@@ -1936,7 +1940,8 @@ export default function CodeSharingPage({ onLogout }) {
 
       <main className="w-full px-6 py-10 space-y-12">
         {page === "home" && (
-          <SnippetGrid snippets={publicSnippets} onSelect={fetchSnippetById} />
+          <SnippetGrid snippets={publicSnippets} onSelect={fetchSnippetById} onTagClick={(tag) => fetchSnippetsByTag(tag)} />
+
         )}
 
         {page === "add" && <AddSnippetForm onAdd={handleAddSnippet} />}
