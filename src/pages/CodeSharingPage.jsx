@@ -353,7 +353,7 @@ function SnippetCard({ snippet, onSelect }) {
 // ---------------- snippet grid ----------------
 function SnippetGrid({ snippets, onSelect }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const snippetsPerPage = 6; // adjust as needed
+  const snippetsPerPage = 8; // adjust as needed
 
   if (!snippets || snippets.length === 0) {
     return (
