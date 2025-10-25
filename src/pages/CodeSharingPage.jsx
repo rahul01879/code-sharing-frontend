@@ -440,6 +440,8 @@ function SnippetModal({
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ ...snippet });
   const [comment, setComment] = useState("");
+  const [commentLoading, setCommentLoading] = useState(false);
+  const currentUser = JSON.parse(localStorage.getItem("user")); // for delete permissions
   const [showCollections, setShowCollections] = useState(false);
   const [collections, setCollections] = useState([]);
   const [newCollection, setNewCollection] = useState("");
@@ -658,7 +660,7 @@ function SnippetModal({
             </span>
             <button
               onClick={handleCopy}
-              className="text-gray-300 hover:text-white flex items-center gap-1"
+              className="text-gray-300 hover:text-white flex items-center gap-1 aria-label"
             >
               📋 Copy
             </button>
@@ -691,7 +693,7 @@ function SnippetModal({
 
               <button
                 onClick={handleDownload}
-                className="bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg text-white text-sm"
+                className="bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg text-white text-sm aria-label"
               >
                 ⬇ Download
               </button>
@@ -777,21 +779,22 @@ function SnippetModal({
               </div>
             </div>
 
-           {/* COMMENTS SECTION */}
-          <div className="mt-6 text-sm text-gray-300">
-            <h4 className="text-lg font-semibold text-blue-400 mb-2">💬 Comments</h4>
+       {/* 💬 COMMENTS SECTION */}
+        <div className="mt-6 text-sm text-gray-300">
+          <h4 className="text-lg font-semibold text-blue-400 mb-2">💬 Comments</h4>
 
-            {/* Existing comments */}
-            {snippet.comments && snippet.comments.length > 0 ? (
-              <div className="space-y-2 max-h-56 overflow-y-auto border border-gray-700 rounded-md p-2 bg-gray-800/60">
-                {snippet.comments
-                  .slice()
-                  .reverse()
-                  .map((c, i) => (
-                    <div
-                      key={i}
-                      className="border-b border-gray-700 pb-1 mb-1 last:border-0 last:pb-0 last:mb-0"
-                    >
+          {/* Existing comments */}
+          {snippet.comments && snippet.comments.length > 0 ? (
+            <div className="space-y-3 max-h-60 overflow-y-auto border border-gray-700 rounded-md p-3 bg-gray-800/60">
+              {snippet.comments
+                .slice()
+                .reverse()
+                .map((c, i) => (
+                  <div
+                    key={c._id || i}
+                    className="border-b border-gray-700 pb-2 last:border-0 last:pb-0 flex justify-between items-start"
+                  >
+                    <div>
                       <p className="font-semibold text-blue-300">
                         {c.user || "Anonymous"}
                         <span className="text-gray-500 text-xs ml-2">
@@ -800,56 +803,120 @@ function SnippetModal({
                       </p>
                       <p className="text-gray-200 mt-1 whitespace-pre-wrap">{c.text}</p>
                     </div>
-                  ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 italic">No comments yet. Be the first to comment!</p>
-            )}
 
-            {/* Add new comment */}
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!comment.trim()) return alert("Enter a comment");
+                    {/* 🗑 Delete button (only for author or snippet owner) */}
+                    {(currentUser?.username === c.user ||
+                      currentUser?.username === snippet.author) && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm("Delete this comment?")) return;
+
+                          try {
+                            const token = localStorage.getItem("token");
+                            const res = await fetch(
+                              `${API}/api/snippets/${snippet._id}/comments/${c._id}`,
+                              {
+                                method: "DELETE",
+                                headers: { Authorization: `Bearer ${token}` },
+                              }
+                            );
+
+                            const text = await res.text(); // 🧠 safer parse
+                            let data;
+                            try {
+                              data = JSON.parse(text);
+                            } catch {
+                              console.error("❌ Non-JSON response:", text);
+                              alert("Server error while deleting comment");
+                              return;
+                            }
+
+                            if (res.ok) {
+                              onSnippetUpdate(data.snippet || snippet);
+                            } else {
+                              alert("❌ Failed: " + (data.error || "Unknown error"));
+                            }
+                          } catch (err) {
+                            console.error("delete comment error:", err);
+                            alert("❌ Network error while deleting comment");
+                          }
+                        }}
+                        className="text-red-400 hover:text-red-500 text-xs font-medium ml-2"
+                        title="Delete comment"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 italic">
+              No comments yet. Be the first to comment!
+            </p>
+          )}
+
+          {/* ➕ Add new comment */}
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!comment.trim()) return alert("Enter a comment");
+              setCommentLoading(true);
+
+              try {
+                const res = await fetch(`${API}/api/snippets/${snippet._id}/comments`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                  },
+                  body: JSON.stringify({ text: comment }),
+                });
+
+                const text = await res.text();
+                let data;
                 try {
-                  const res = await fetch(`${API}/api/snippets/${snippet._id}/comments`, {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                    body: JSON.stringify({ text: comment }),
-                  });
-                  if (res.ok) {
-                    const updated = await res.json();
-                    onSnippetUpdate(updated); // refresh parent snippet
-                    setComment("");
-                  } else {
-                    const errData = await res.json();
-                    alert("❌ Failed to add comment: " + (errData.error || "Unknown error"));
-                  }
-                } catch (err) {
-                  console.error("add comment error:", err);
-                  alert("❌ Network error while adding comment");
+                  data = JSON.parse(text);
+                } catch {
+                  console.error("❌ Non-JSON response:", text);
+                  alert("Server error while adding comment");
+                  return;
                 }
-              }}
-              className="mt-3 flex items-center gap-2"
+
+                if (res.ok) {
+                  onSnippetUpdate(data);
+                  setComment("");
+                } else {
+                  alert("❌ Failed: " + (data.error || "Unknown error"));
+                }
+              } catch (err) {
+                console.error("add comment error:", err);
+                alert("❌ Network error while adding comment");
+              } finally {
+                setCommentLoading(false);
+              }
+            }}
+            className="mt-3 flex items-center gap-2"
+          >
+            <input
+              type="text"
+              placeholder="Write a comment..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              disabled={commentLoading}
+              className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-white border border-gray-700 focus:outline-none focus:border-blue-500 text-sm disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={commentLoading}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm flex items-center justify-center disabled:opacity-50"
             >
-              <input
-                type="text"
-                placeholder="Write a comment..."
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-white border border-gray-700 focus:outline-none focus:border-blue-500 text-sm"
-              />
-              <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm"
-              >
-                ➤
-              </button>
-            </form>
-          </div>
+              {commentLoading ? "..." : "➤"}
+            </button>
+          </form>
+        </div>
+
+
 
           </>
         )}
@@ -1375,12 +1442,12 @@ function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/AddSnippetForm" className="hover:text-blue-400 transition">
+                <Link to="/add" className="hover:text-blue-400 transition">
                   Add Snippet
                 </Link>
               </li>
               <li>
-                <Link to="/CollectionsPage" className="hover:text-blue-400 transition">
+                <Link to="/collections" className="hover:text-blue-400 transition">
                   Collections
                 </Link>
               </li>
@@ -1493,7 +1560,7 @@ export default function CodeSharingPage({ onLogout }) {
   // ✅ Search
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const searchDebounceRef = useRef(null);
   const normalizeSnippets = (data) =>
     Array.isArray(data)
       ? data
@@ -1502,6 +1569,21 @@ export default function CodeSharingPage({ onLogout }) {
       : [];
 
   useEffect(() => {
+   
+   axios.interceptors.response.use(
+      r => r,
+      err => {
+        if (err.response && err.response.status === 401) {
+          localStorage.removeItem("token");
+          // optional: show toast "Session expired"
+          window.location.reload(); // or call onLogout()
+        }
+        return Promise.reject(err);
+      }
+    );
+
+
+   
     // Fetch public snippets
     axios
       .get(`${API}/api/snippets/public`)
@@ -1687,20 +1769,26 @@ export default function CodeSharingPage({ onLogout }) {
 
 
   // ========================= Search =========================
-  const handleNavigate = async (targetPage, query) => {
-    setPage(targetPage);
-    if (targetPage === "search" && query) {
-      setSearchQuery(query);
-      try {
-        const res = await axios.get(
-          `${API}/api/snippets/search?q=${encodeURIComponent(query)}`
-        );
-        setSearchResults(res.data || []);
-      } catch (err) {
-        console.error("search error:", err);
+  // update handleNavigate (search)
+    const handleNavigate = async (targetPage, query) => {
+      setPage(targetPage);
+      if (targetPage === "search") {
+        setSearchQuery(query || "");
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        searchDebounceRef.current = setTimeout(async () => {
+          if (!query || query.trim() === "") {
+            setSearchResults([]);
+            return;
+          }
+          try {
+            const res = await axios.get(`${API}/api/snippets/search?q=${encodeURIComponent(query)}`);
+            setSearchResults(res.data || []);
+          } catch (err) {
+            console.error("search error:", err);
+          }
+        }, 350); // 350ms debounce
       }
-    }
-  };
+    };
 
   // ========================= Render =========================
   return (

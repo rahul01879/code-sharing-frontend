@@ -24,10 +24,6 @@ import Docs from "./pages/Docs";
 import FAQ from "./pages/FAQ";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
-import HomePage from "./pages/HomePage";
-import AddSnippetForm from "./pages/AddSnippetForm";
-import CollectionsPage from "./pages/CollectionsPage";
-import Profile from "./pages/Profile";
 
 // ✅ Route Protector
 import AdminRoute from "./components/AdminRoute";
@@ -200,10 +196,7 @@ export default function App() {
         <Route path="/faq" element={<FAQ />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
-        <Route path="/" element={<HomePage />} />
-        <Route path="/addsnippetform" element={<AddSnippetForm />} />
-        <Route path="/collectionspage" element={<CollectionsPage />} />
-        <Route path="/profile" element={<Profile />} />
+     
       </Routes>
     </Router>
   );
