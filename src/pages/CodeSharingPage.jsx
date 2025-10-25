@@ -21,7 +21,7 @@ import "prismjs/components/prism-cpp";
 import "prismjs/components/prism-java";
 import "prismjs/components/prism-ruby";
 import { FaUser, FaEnvelope, FaCode, FaGithub, FaCalendarAlt, FaExternalLinkAlt } from "react-icons/fa";
-import { FaEye, FaHeart, FaComment } from "react-icons/fa6";
+
 import { Home, PlusSquare, FileText, User, LogOut, Shield, FolderOpen,
          Edit2, Trash2, ArrowLeft, Github, Twitter, Linkedin, Mail, Code2, Menu,
           X , Search, Folder,  Eye, Heart, MessageSquare } from "lucide-react";
