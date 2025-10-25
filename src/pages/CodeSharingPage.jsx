@@ -266,6 +266,7 @@ function Header({ current, onNavigate, onLogout }) {
 
 
 
+
 // ---------------- Snippet Card ----------------
 function SnippetCard({ snippet, onSelect }) {
   return (
@@ -327,16 +328,29 @@ function SnippetCard({ snippet, onSelect }) {
       </div>
 
       {/* --- Footer --- */}
-      <div className="mt-3 flex flex-wrap justify-between items-center gap-2 text-gray-400 text-[11px] sm:text-xs">
-        <div className="flex items-center gap-1 whitespace-nowrap">
+      <div className="mt-4 flex flex-wrap justify-between items-center text-gray-400 text-[11px] sm:text-xs">
+        <div className="flex items-center gap-1">
           📅 {formatDate(snippet.createdAt)}
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[2px] rounded-full">
+        <div className="flex items-center gap-3 sm:gap-4 text-gray-400">
+          {/* Likes */}
+          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
             👍 {snippet.likes?.length || 0}
           </span>
-          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[2px] rounded-full">
+
+          {/* Comments */}
+          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
+            💬 {snippet.comments?.length || 0}
+          </span>
+
+          {/* Views */}
+          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
+            👁️ {snippet.views || 0}
+          </span>
+
+          {/* Author */}
+          <span className="hidden sm:flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700 hover:border-blue-500/40 transition">
             👤 {snippet.author || "Unknown"}
           </span>
         </div>
@@ -344,6 +358,7 @@ function SnippetCard({ snippet, onSelect }) {
     </div>
   );
 }
+
 
 
 
