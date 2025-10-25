@@ -1995,7 +1995,7 @@ export default function CodeSharingPage({ onLogout }) {
           onLike={handleLike}
           onComment={handleComment}
           onSyncGithub={handleSyncGithub}
-          onTagClick={(tag) => fetchSnippetsByTag(tag)}
+         onTagClick={onTagClick} 
         />
       </main>
       <Footer />
