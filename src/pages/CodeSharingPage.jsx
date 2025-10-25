@@ -353,7 +353,7 @@ function SnippetCard({ snippet, onSelect }) {
 // ---------------- snippet grid ----------------
 function SnippetGrid({ snippets, onSelect }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const snippetsPerPage = 8; // adjust as needed
+  const snippetsPerPage = 6; // adjust as needed
 
   if (!snippets || snippets.length === 0) {
     return (
@@ -777,10 +777,80 @@ function SnippetModal({
               </div>
             </div>
 
-            {/* COMMENTS SECTION */}
-            <div className="mt-6 text-sm text-gray-300">
-              {/* You can integrate your existing comment section here */}
-            </div>
+           {/* COMMENTS SECTION */}
+          <div className="mt-6 text-sm text-gray-300">
+            <h4 className="text-lg font-semibold text-blue-400 mb-2">💬 Comments</h4>
+
+            {/* Existing comments */}
+            {snippet.comments && snippet.comments.length > 0 ? (
+              <div className="space-y-2 max-h-56 overflow-y-auto border border-gray-700 rounded-md p-2 bg-gray-800/60">
+                {snippet.comments
+                  .slice()
+                  .reverse()
+                  .map((c, i) => (
+                    <div
+                      key={i}
+                      className="border-b border-gray-700 pb-1 mb-1 last:border-0 last:pb-0 last:mb-0"
+                    >
+                      <p className="font-semibold text-blue-300">
+                        {c.user || "Anonymous"}
+                        <span className="text-gray-500 text-xs ml-2">
+                          {new Date(c.createdAt).toLocaleString()}
+                        </span>
+                      </p>
+                      <p className="text-gray-200 mt-1 whitespace-pre-wrap">{c.text}</p>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">No comments yet. Be the first to comment!</p>
+            )}
+
+            {/* Add new comment */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!comment.trim()) return alert("Enter a comment");
+                try {
+                  const res = await fetch(`${API}/api/snippets/${snippet._id}/comments`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                    body: JSON.stringify({ text: comment }),
+                  });
+                  if (res.ok) {
+                    const updated = await res.json();
+                    onSnippetUpdate(updated); // refresh parent snippet
+                    setComment("");
+                  } else {
+                    const errData = await res.json();
+                    alert("❌ Failed to add comment: " + (errData.error || "Unknown error"));
+                  }
+                } catch (err) {
+                  console.error("add comment error:", err);
+                  alert("❌ Network error while adding comment");
+                }
+              }}
+              className="mt-3 flex items-center gap-2"
+            >
+              <input
+                type="text"
+                placeholder="Write a comment..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-white border border-gray-700 focus:outline-none focus:border-blue-500 text-sm"
+              />
+              <button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm"
+              >
+                ➤
+              </button>
+            </form>
+          </div>
+
           </>
         )}
       </div>
