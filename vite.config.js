@@ -15,4 +15,7 @@ export default defineConfig({
       "/api": "http://localhost:5000", // backend server
     },
   },
+  build: {
+    sourcemap: false, // ✅ disables source maps in production
+  },
 });
