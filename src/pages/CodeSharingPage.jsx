@@ -1375,12 +1375,12 @@ function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/add" className="hover:text-blue-400 transition">
+                <Link to="/AddSnippetForm" className="hover:text-blue-400 transition">
                   Add Snippet
                 </Link>
               </li>
               <li>
-                <Link to="/collections" className="hover:text-blue-400 transition">
+                <Link to="/CollectionsPage" className="hover:text-blue-400 transition">
                   Collections
                 </Link>
               </li>
