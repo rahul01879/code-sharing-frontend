@@ -382,8 +382,8 @@ function SnippetCard({ snippet, onSelect, onTagClick }) {
 
 
 
-// ---------------- snippet grid ----------------
-function SnippetGrid({ snippets, onSelect }) {
+// ---------------- Snippet Grid ----------------
+function SnippetGrid({ snippets, onSelect, onTagClick }) {
   const [currentPage, setCurrentPage] = useState(1);
   const snippetsPerPage = 8; // adjust as needed
 
@@ -414,7 +414,12 @@ function SnippetGrid({ snippets, onSelect }) {
       {/* Snippet Cards Grid */}
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {currentSnippets.map((s) => (
-          <SnippetCard key={s._id || s.id} snippet={s} onSelect={onSelect} nTagClick={onTagClick}/>
+          <SnippetCard
+            key={s._id || s.id}
+            snippet={s}
+            onSelect={onSelect}
+            onTagClick={onTagClick} // ✅ FIXED
+          />
         ))}
       </div>
 
@@ -455,6 +460,7 @@ function SnippetGrid({ snippets, onSelect }) {
     </div>
   );
 }
+
 
 
 
