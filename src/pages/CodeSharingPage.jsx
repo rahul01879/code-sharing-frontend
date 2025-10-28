@@ -103,7 +103,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     setShowSearch(false);
   };
 
-  // ✅ Apply filters logic
+  // ✅ Combine filter results
   const applyFilters = async (filters) => {
     if (!filters || filters.length === 0) {
       handleNavigate("home");
@@ -113,39 +113,35 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     setLoading(true);
     try {
       const allResults = [];
-
       for (const lang of filters) {
-        const res = await fetchSnippetsByTag(lang);
-        if (res && Array.isArray(res)) allResults.push(...res);
+        const data = await fetchSnippetsByTag(lang);
+        if (data && Array.isArray(data)) allResults.push(...data);
       }
 
-      const uniqueResults = Array.from(
-        new Map(allResults.map((s) => [s._id, s])).values()
-      );
+      // remove duplicates
+      const uniqueResults = Array.from(new Map(allResults.map(s => [s._id, s])).values());
 
-      onNavigate("search");
+      onNavigate("search", uniqueResults);
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Toggle individual filters
+  // ✅ Toggle language filter
   const handleFilterClick = async (lang) => {
     const updated = activeFilters.includes(lang)
-      ? activeFilters.filter((f) => f !== lang)
+      ? activeFilters.filter(f => f !== lang)
       : [...activeFilters, lang];
     setActiveFilters(updated);
     await applyFilters(updated);
   };
 
-  // ✅ Remove single filter
   const removeFilter = async (lang) => {
-    const updated = activeFilters.filter((f) => f !== lang);
+    const updated = activeFilters.filter(f => f !== lang);
     setActiveFilters(updated);
     await applyFilters(updated);
   };
 
-  // ✅ Clear all filters
   const clearAllFilters = async () => {
     setActiveFilters([]);
     handleNavigate("home");
@@ -153,7 +149,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-gray-950/90 backdrop-blur-md border-b border-gray-800 shadow-md">
-      {/* --- Top Bar --- */}
+      {/* --- Top Section --- */}
       <div className="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4">
         {/* Logo */}
         <button
@@ -163,7 +159,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
           CODE<span className="text-gray-300">X</span>
         </button>
 
-        {/* Desktop Navigation */}
+        {/* Navigation */}
         <nav className="hidden md:flex items-center gap-3 lg:gap-4">
           {navItems.map((item) => (
             <button
@@ -215,7 +211,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
           )}
         </nav>
 
-        {/* Mobile Controls */}
+        {/* Mobile controls */}
         <div className="flex items-center gap-3 md:hidden">
           <button
             onClick={() => setShowSearch((prev) => !prev)}
@@ -232,21 +228,23 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
         </div>
       </div>
 
-      {/* --- Quick Filters (visible on Home & Search) --- */}
+      {/* --- Quick Filters --- */}
       {(current === "home" || current === "search") && (
-        <div className="max-w-6xl mx-auto px-6 pb-3">
-          <div className="flex flex-wrap gap-3 items-center justify-start border-t border-gray-800 pt-3">
-            <span className="text-sm text-gray-400 font-medium">Quick filters:</span>
+        <div className="relative border-t border-gray-800">
+          <div className="flex items-center overflow-x-auto gap-3 px-4 sm:px-8 py-3 scrollbar-hide">
+            <span className="text-sm text-gray-400 flex-shrink-0 font-medium">
+              Quick filters:
+            </span>
 
             {["javascript", "python", "java", "php", "typescript", "go", "ruby", "csharp"].map(
               (lang) => (
                 <button
                   key={lang}
                   onClick={() => handleFilterClick(lang)}
-                  className={`px-4 py-1.5 text-xs rounded-full font-medium transition-all duration-300 ${
+                  className={`flex-shrink-0 px-4 py-1.5 text-xs rounded-full font-semibold transition-all duration-300 ${
                     activeFilters.includes(lang)
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md scale-105"
-                      : "bg-gray-800/60 border border-gray-700 text-gray-300 hover:bg-blue-600/30 hover:text-blue-300"
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md scale-105"
+                      : "bg-gray-800/70 border border-gray-700 text-gray-300 hover:bg-blue-600/30 hover:text-blue-300"
                   }`}
                 >
                   {lang}
@@ -270,9 +268,9 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
             )}
           </div>
 
-          {/* Active filter pills */}
+          {/* Active Filter Chips */}
           {activeFilters.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="flex flex-wrap gap-2 px-4 sm:px-8 pb-3">
               {activeFilters.map((f) => (
                 <span
                   key={f}
@@ -282,7 +280,6 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
                   <button
                     onClick={() => removeFilter(f)}
                     className="text-gray-400 hover:text-red-400 transition"
-                    aria-label="Remove filter"
                   >
                     ✕
                   </button>
@@ -295,6 +292,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     </header>
   );
 }
+
 
 
 
@@ -1962,52 +1960,61 @@ const [loading, setLoading] = useState(false);
     };
 
     // ========================= Tag Filtering =========================
-    const fetchSnippetsByTag = async (tag) => {
-  if (!tag) return;
+      const fetchSnippetsByTag = async (tag) => {
+        if (!tag) return;
 
-  setLoading(true);
+        try {
+          setLoading(true);
 
-  try {
-    setCurrentFilter((prev) => {
-      if (!Array.isArray(prev)) prev = [];
+          setCurrentFilter((prev) => {
+            // ✅ Ensure it's always an array
+            let updatedFilters = Array.isArray(prev) ? [...prev] : [];
 
-      // Toggle tag on/off
-      const updatedFilters = prev.includes(tag)
-        ? prev.filter((t) => t !== tag)
-        : [...prev, tag];
+            // ✅ Toggle tag on/off
+            if (updatedFilters.includes(tag)) {
+              updatedFilters = updatedFilters.filter((t) => t !== tag);
+            } else {
+              updatedFilters.push(tag);
+            }
 
-      // If no filters left → show home page again
-      if (updatedFilters.length === 0) {
-        setPage("home");
-        setSearchResults([]);
-        return [];
-      }
+            // ✅ If no filters left → show home
+            if (updatedFilters.length === 0) {
+              setPage("home");
+              setSearchQuery("");
+              setSearchResults([]);
+              setLoading(false);
+              return [];
+            }
 
-      // Build query string for active filters
-      const query = updatedFilters.join(" ");
+            // ✅ Build search query
+            const query = updatedFilters.join(" ");
 
-      // Fetch filtered snippets from backend
-      axios
-        .get(`${API}/api/snippets/search?q=${encodeURIComponent(query)}`)
-        .then((res) => {
-          const data = res.data;
-          setPage("search");
-          setSearchQuery(query);
-          // ✅ handle structured response from backend
-          setSearchResults(data.snippets || data || []);
-        })
-        .catch((err) => {
+            // ✅ Fetch filtered snippets
+            (async () => {
+              try {
+                const res = await axios.get(
+                  `${API}/api/snippets/search?q=${encodeURIComponent(query)}`
+                );
+
+                const data = res.data;
+                setPage("search");
+                setSearchQuery(query);
+                setSearchResults(Array.isArray(data.snippets) ? data.snippets : data || []);
+              } catch (err) {
+                console.error("tag filter error:", err);
+              } finally {
+                setLoading(false);
+              }
+            })();
+
+            return updatedFilters;
+          });
+        } catch (err) {
           console.error("tag filter error:", err);
-        })
-        .finally(() => setLoading(false));
+          setLoading(false);
+        }
+      };
 
-      return updatedFilters;
-    });
-  } catch (err) {
-    console.error("tag filter error:", err);
-    setLoading(false);
-  }
-};
 
 
     // Clear all filters
