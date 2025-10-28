@@ -1939,25 +1939,38 @@ const [loading, setLoading] = useState(false);
 
   // ========================= Search =========================
   // update handleNavigate (search)
-    const handleNavigate = async (targetPage, query) => {
+   const handleNavigate = async (targetPage, query) => {
       setPage(targetPage);
+
+      // ✅ Normalize query so it's always a string
+      const normalizedQuery = Array.isArray(query)
+        ? query.join(" ")
+        : (query || "").toString();
+
       if (targetPage === "search") {
-        setSearchQuery(query || "");
-        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        setSearchQuery(normalizedQuery);
+
+        if (searchDebounceRef.current)
+          clearTimeout(searchDebounceRef.current);
+
         searchDebounceRef.current = setTimeout(async () => {
-          if (!query || query.trim() === "") {
+          if (!normalizedQuery.trim()) {
             setSearchResults([]);
             return;
           }
+
           try {
-            const res = await axios.get(`${API}/api/snippets/search?q=${encodeURIComponent(query)}`);
+            const res = await axios.get(
+              `${API}/api/snippets/search?q=${encodeURIComponent(normalizedQuery)}`
+            );
             setSearchResults(res.data || []);
           } catch (err) {
             console.error("search error:", err);
           }
-        }, 350); // 350ms debounce
+        }, 350);
       }
     };
+
 
     // ========================= Tag Filtering =========================
       const fetchSnippetsByTag = async (tag) => {
