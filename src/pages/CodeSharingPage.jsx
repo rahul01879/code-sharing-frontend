@@ -80,15 +80,13 @@ function timeAgo(date) {
   return "just now";
 }
 
-
-// ---------------- Header ----------------
 // ---------------- Header ----------------
 function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
-  const [activeFilters, setActiveFilters] = useState([]); // ✅ active tags
+  const [activeFilters, setActiveFilters] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const navItems = [
@@ -105,51 +103,49 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     setShowSearch(false);
   };
 
-  // ✅ Apply filters (combine results or reset)
+  // ✅ Apply filters logic
   const applyFilters = async (filters) => {
     if (!filters || filters.length === 0) {
-      // no filters → show home page
       handleNavigate("home");
       return;
     }
 
     setLoading(true);
-    // merge results from all filters
-    const allResults = [];
-    for (const lang of filters) {
-      const res = await fetchSnippetsByTag(lang);
-      if (res && Array.isArray(res)) {
-        allResults.push(...res);
+    try {
+      const allResults = [];
+
+      for (const lang of filters) {
+        const res = await fetchSnippetsByTag(lang);
+        if (res && Array.isArray(res)) allResults.push(...res);
       }
+
+      const uniqueResults = Array.from(
+        new Map(allResults.map((s) => [s._id, s])).values()
+      );
+
+      onNavigate("search");
+    } finally {
+      setLoading(false);
     }
-
-    // remove duplicates
-    const uniqueResults = Array.from(
-      new Map(allResults.map((s) => [s._id, s])).values()
-    );
-
-    // display search page with merged results
-    onNavigate("search");
-    setLoading(false);
-    return uniqueResults;
   };
 
-  // ✅ Add filter and show combined results
+  // ✅ Toggle individual filters
   const handleFilterClick = async (lang) => {
-    if (activeFilters.includes(lang)) return;
-    const updated = [...activeFilters, lang];
+    const updated = activeFilters.includes(lang)
+      ? activeFilters.filter((f) => f !== lang)
+      : [...activeFilters, lang];
     setActiveFilters(updated);
     await applyFilters(updated);
   };
 
-  // ✅ Remove filter and refresh view
+  // ✅ Remove single filter
   const removeFilter = async (lang) => {
     const updated = activeFilters.filter((f) => f !== lang);
     setActiveFilters(updated);
     await applyFilters(updated);
   };
 
-  // ✅ Clear all and return home
+  // ✅ Clear all filters
   const clearAllFilters = async () => {
     setActiveFilters([]);
     handleNavigate("home");
@@ -157,8 +153,9 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-gray-950/90 backdrop-blur-md border-b border-gray-800 shadow-md">
+      {/* --- Top Bar --- */}
       <div className="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4">
-        {/* --- LOGO --- */}
+        {/* Logo */}
         <button
           onClick={() => handleNavigate("home")}
           className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 tracking-tight hover:scale-105 transition-transform"
@@ -166,7 +163,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
           CODE<span className="text-gray-300">X</span>
         </button>
 
-        {/* --- DESKTOP NAV --- */}
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-3 lg:gap-4">
           {navItems.map((item) => (
             <button
@@ -192,7 +189,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
             </Link>
           )}
 
-          {/* --- Search (Desktop) --- */}
+          {/* Search */}
           <div className="relative ml-3">
             <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
             <input
@@ -207,7 +204,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
             />
           </div>
 
-          {/* --- Logout --- */}
+          {/* Logout */}
           {onLogout && (
             <button
               onClick={onLogout}
@@ -218,7 +215,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
           )}
         </nav>
 
-        {/* --- MOBILE BUTTONS --- */}
+        {/* Mobile Controls */}
         <div className="flex items-center gap-3 md:hidden">
           <button
             onClick={() => setShowSearch((prev) => !prev)}
@@ -226,7 +223,6 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
           >
             <Search size={24} />
           </button>
-
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="text-gray-300 hover:text-white p-1.5 rounded-full transition"
@@ -236,48 +232,33 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
         </div>
       </div>
 
-      {/* --- MOBILE SEARCH BAR --- */}
-      <div
-        className={`md:hidden transition-all duration-300 overflow-hidden bg-gray-900/95 border-t border-gray-800 ${
-          showSearch ? "max-h-20 opacity-100 py-3" : "max-h-0 opacity-0 py-0"
-        }`}
-      >
-        <div className="relative px-4">
-          <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search snippets..."
-            className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              handleNavigate("search", e.target.value);
-            }}
-          />
-        </div>
-      </div>
-
-      {/* --- Quick Filters --- */}
+      {/* --- Quick Filters (visible on Home & Search) --- */}
       {(current === "home" || current === "search") && (
-        <div className="max-w-6xl mx-auto px-6 mt-2 mb-3">
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-sm text-gray-400">Quick filters:</span>
+        <div className="max-w-6xl mx-auto px-6 pb-3">
+          <div className="flex flex-wrap gap-3 items-center justify-start border-t border-gray-800 pt-3">
+            <span className="text-sm text-gray-400 font-medium">Quick filters:</span>
 
-            {["javascript","python","java","php","typescript","go","ruby","csharp"].map((lang) => (
-              <button
-                key={lang}
-                onClick={() => handleFilterClick(lang)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
-                  activeFilters.includes(lang)
-                    ? "border-blue-500 bg-blue-600/30 text-blue-300 shadow-sm"
-                    : "border-gray-700 bg-gray-800/60 text-gray-200 hover:bg-blue-600/20"
-                }`}
-              >
-                {lang}
-              </button>
-            ))}
+            {["javascript", "python", "java", "php", "typescript", "go", "ruby", "csharp"].map(
+              (lang) => (
+                <button
+                  key={lang}
+                  onClick={() => handleFilterClick(lang)}
+                  className={`px-4 py-1.5 text-xs rounded-full font-medium transition-all duration-300 ${
+                    activeFilters.includes(lang)
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md scale-105"
+                      : "bg-gray-800/60 border border-gray-700 text-gray-300 hover:bg-blue-600/30 hover:text-blue-300"
+                  }`}
+                >
+                  {lang}
+                </button>
+              )
+            )}
 
-            {loading && <span className="text-sm text-gray-400 ml-2">Loading...</span>}
+            {loading && (
+              <span className="text-sm text-gray-400 ml-2 animate-pulse">
+                Loading…
+              </span>
+            )}
 
             {activeFilters.length > 0 && (
               <button
@@ -289,21 +270,21 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
             )}
           </div>
 
-          {/* Active Filter Tags */}
+          {/* Active filter pills */}
           {activeFilters.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
               {activeFilters.map((f) => (
                 <span
                   key={f}
-                  className="flex items-center gap-2 px-3 py-1 bg-gray-800 text-blue-300 rounded-full text-xs border border-blue-500"
+                  className="flex items-center gap-2 px-3 py-1 text-xs rounded-full border border-blue-500 bg-gray-800 text-blue-300 shadow-sm transition-all"
                 >
                   {f}
                   <button
                     onClick={() => removeFilter(f)}
-                    className="text-gray-400 hover:text-red-400"
+                    className="text-gray-400 hover:text-red-400 transition"
                     aria-label="Remove filter"
                   >
-                    ✖
+                    ✕
                   </button>
                 </span>
               ))}
@@ -314,6 +295,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     </header>
   );
 }
+
 
 
 
@@ -1980,38 +1962,52 @@ const [loading, setLoading] = useState(false);
     };
 
     // ========================= Tag Filtering =========================
-     const fetchSnippetsByTag = async (tag) => {
-        if (!tag) return;
-        setLoading(true);
+    const fetchSnippetsByTag = async (tag) => {
+  if (!tag) return;
 
-        try {
-          // Toggle tag on/off
-          setCurrentFilter((prev) => {
-            if (!Array.isArray(prev)) prev = []; // ✅ Safety fallback
-            return prev.includes(tag)
-              ? prev.filter((t) => t !== tag)
-              : [...prev, tag];
-          });
+  setLoading(true);
 
-          const activeTags = Array.isArray(currentFilter)
-            ? currentFilter.includes(tag)
-              ? currentFilter.filter((t) => t !== tag)
-              : [...currentFilter, tag]
-            : [tag]; // ✅ ensure array
+  try {
+    setCurrentFilter((prev) => {
+      if (!Array.isArray(prev)) prev = [];
 
-          const query = activeTags.join(" ");
-          const res = await axios.get(
-            `${API}/api/snippets/search?q=${encodeURIComponent(query)}`
-          );
+      // Toggle tag on/off
+      const updatedFilters = prev.includes(tag)
+        ? prev.filter((t) => t !== tag)
+        : [...prev, tag];
 
+      // If no filters left → show home page again
+      if (updatedFilters.length === 0) {
+        setPage("home");
+        setSearchResults([]);
+        return [];
+      }
+
+      // Build query string for active filters
+      const query = updatedFilters.join(" ");
+
+      // Fetch filtered snippets from backend
+      axios
+        .get(`${API}/api/snippets/search?q=${encodeURIComponent(query)}`)
+        .then((res) => {
+          const data = res.data;
           setPage("search");
-          setSearchResults(res.data || []);
-        } catch (err) {
+          setSearchQuery(query);
+          // ✅ handle structured response from backend
+          setSearchResults(data.snippets || data || []);
+        })
+        .catch((err) => {
           console.error("tag filter error:", err);
-        } finally {
-          setLoading(false);
-        }
-      };
+        })
+        .finally(() => setLoading(false));
+
+      return updatedFilters;
+    });
+  } catch (err) {
+    console.error("tag filter error:", err);
+    setLoading(false);
+  }
+};
 
 
     // Clear all filters
