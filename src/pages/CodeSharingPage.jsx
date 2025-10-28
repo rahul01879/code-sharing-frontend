@@ -82,11 +82,14 @@ function timeAgo(date) {
 
 
 // ---------------- Header ----------------
-function Header({ current, onNavigate, onLogout }) {
+// ---------------- Header ----------------
+function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [activeFilters, setActiveFilters] = useState([]); // ✅ active tags
+  const [loading, setLoading] = useState(false);
 
   const navItems = [
     { id: "home", label: "Home", icon: <Home size={18} /> },
@@ -102,8 +105,58 @@ function Header({ current, onNavigate, onLogout }) {
     setShowSearch(false);
   };
 
+  // ✅ Apply filters (combine results or reset)
+  const applyFilters = async (filters) => {
+    if (!filters || filters.length === 0) {
+      // no filters → show home page
+      handleNavigate("home");
+      return;
+    }
+
+    setLoading(true);
+    // merge results from all filters
+    const allResults = [];
+    for (const lang of filters) {
+      const res = await fetchSnippetsByTag(lang);
+      if (res && Array.isArray(res)) {
+        allResults.push(...res);
+      }
+    }
+
+    // remove duplicates
+    const uniqueResults = Array.from(
+      new Map(allResults.map((s) => [s._id, s])).values()
+    );
+
+    // display search page with merged results
+    onNavigate("search");
+    setLoading(false);
+    return uniqueResults;
+  };
+
+  // ✅ Add filter and show combined results
+  const handleFilterClick = async (lang) => {
+    if (activeFilters.includes(lang)) return;
+    const updated = [...activeFilters, lang];
+    setActiveFilters(updated);
+    await applyFilters(updated);
+  };
+
+  // ✅ Remove filter and refresh view
+  const removeFilter = async (lang) => {
+    const updated = activeFilters.filter((f) => f !== lang);
+    setActiveFilters(updated);
+    await applyFilters(updated);
+  };
+
+  // ✅ Clear all and return home
+  const clearAllFilters = async () => {
+    setActiveFilters([]);
+    handleNavigate("home");
+  };
+
   return (
-    <header className="sticky top-0 z-50 w-full bg-gray-950/80 backdrop-blur-md border-b border-gray-800 shadow-md">
+    <header className="sticky top-0 z-50 w-full bg-gray-950/90 backdrop-blur-md border-b border-gray-800 shadow-md">
       <div className="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4">
         {/* --- LOGO --- */}
         <button
@@ -141,10 +194,7 @@ function Header({ current, onNavigate, onLogout }) {
 
           {/* --- Search (Desktop) --- */}
           <div className="relative ml-3">
-            <Search
-              size={16}
-              className="absolute left-3 top-2.5 text-gray-400"
-            />
+            <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
             <input
               type="text"
               placeholder="Search snippets..."
@@ -170,7 +220,6 @@ function Header({ current, onNavigate, onLogout }) {
 
         {/* --- MOBILE BUTTONS --- */}
         <div className="flex items-center gap-3 md:hidden">
-          {/* Mobile Search Icon */}
           <button
             onClick={() => setShowSearch((prev) => !prev)}
             className="text-gray-300 hover:text-white p-1.5 rounded-full transition"
@@ -178,7 +227,6 @@ function Header({ current, onNavigate, onLogout }) {
             <Search size={24} />
           </button>
 
-          {/* Mobile Menu Toggle */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="text-gray-300 hover:text-white p-1.5 rounded-full transition"
@@ -195,10 +243,7 @@ function Header({ current, onNavigate, onLogout }) {
         }`}
       >
         <div className="relative px-4">
-          <Search
-            size={18}
-            className="absolute left-3 top-2.5 text-gray-400"
-          />
+          <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
           <input
             type="text"
             placeholder="Search snippets..."
@@ -212,59 +257,65 @@ function Header({ current, onNavigate, onLogout }) {
         </div>
       </div>
 
-      {/* --- MOBILE MENU --- */}
-      <div
-        className={`md:hidden overflow-hidden transition-all duration-300 ${
-          menuOpen ? "max-h-[450px] opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        <ul className="flex flex-col gap-3 bg-gray-900/95 px-5 py-4 border-t border-gray-800 rounded-b-2xl">
-          {navItems.map((item) => (
-            <li key={item.id}>
+      {/* --- Quick Filters --- */}
+      {(current === "home" || current === "search") && (
+        <div className="max-w-6xl mx-auto px-6 mt-2 mb-3">
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-sm text-gray-400">Quick filters:</span>
+
+            {["javascript","python","java","php","typescript","go","ruby","csharp"].map((lang) => (
               <button
-                onClick={() => handleNavigate(item.id)}
-                className={`flex items-center gap-3 w-full px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  current === item.id
-                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md"
-                    : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                key={lang}
+                onClick={() => handleFilterClick(lang)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                  activeFilters.includes(lang)
+                    ? "border-blue-500 bg-blue-600/30 text-blue-300 shadow-sm"
+                    : "border-gray-700 bg-gray-800/60 text-gray-200 hover:bg-blue-600/20"
                 }`}
               >
-                {item.icon}
-                {item.label}
+                {lang}
               </button>
-            </li>
-          ))}
+            ))}
 
-          {isAdmin && (
-            <li>
-              <Link
-                to="/admin/dashboard"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-3 w-full px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white"
-              >
-                <Shield size={18} /> Admin
-              </Link>
-            </li>
-          )}
+            {loading && <span className="text-sm text-gray-400 ml-2">Loading...</span>}
 
-          {onLogout && (
-            <li>
+            {activeFilters.length > 0 && (
               <button
-                onClick={() => {
-                  onLogout();
-                  setMenuOpen(false);
-                }}
-                className="flex items-center justify-center gap-2 w-full mt-2 bg-gradient-to-r from-red-500 to-pink-500 px-4 py-2 rounded-md text-white font-medium hover:scale-105 transition-all"
+                onClick={clearAllFilters}
+                className="ml-auto text-xs text-red-400 hover:underline"
               >
-                <LogOut size={18} /> Logout
+                Clear all
               </button>
-            </li>
+            )}
+          </div>
+
+          {/* Active Filter Tags */}
+          {activeFilters.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {activeFilters.map((f) => (
+                <span
+                  key={f}
+                  className="flex items-center gap-2 px-3 py-1 bg-gray-800 text-blue-300 rounded-full text-xs border border-blue-500"
+                >
+                  {f}
+                  <button
+                    onClick={() => removeFilter(f)}
+                    className="text-gray-400 hover:text-red-400"
+                    aria-label="Remove filter"
+                  >
+                    ✖
+                  </button>
+                </span>
+              ))}
+            </div>
           )}
-        </ul>
-      </div>
+        </div>
+      )}
     </header>
   );
 }
+
+
 
 
 
@@ -1690,6 +1741,11 @@ export default function CodeSharingPage({ onLogout }) {
   const [collections, setCollections] = useState([]);
   const [selectedCollection, setSelectedCollection] = useState(null);
 
+// near the top of the component, add new states
+const [currentFilter, setCurrentFilter] = useState(null);
+const [loading, setLoading] = useState(false);
+
+
   // ✅ Search
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1924,25 +1980,63 @@ export default function CodeSharingPage({ onLogout }) {
     };
 
     // ========================= Tag Filtering =========================
-      const fetchSnippetsByTag = async (tag) => {
+     const fetchSnippetsByTag = async (tag) => {
         if (!tag) return;
+        setLoading(true);
 
         try {
-          // Optionally set a loading state here if you have one
-          const res = await axios.get(`${API}/api/snippets/search?q=${encodeURIComponent(tag)}`);
-          setPage("search"); // reuse your existing search results page
-          setSearchQuery(tag);
+          // Toggle tag on/off
+          setCurrentFilter((prev) => {
+            if (!Array.isArray(prev)) prev = []; // ✅ Safety fallback
+            return prev.includes(tag)
+              ? prev.filter((t) => t !== tag)
+              : [...prev, tag];
+          });
+
+          const activeTags = Array.isArray(currentFilter)
+            ? currentFilter.includes(tag)
+              ? currentFilter.filter((t) => t !== tag)
+              : [...currentFilter, tag]
+            : [tag]; // ✅ ensure array
+
+          const query = activeTags.join(" ");
+          const res = await axios.get(
+            `${API}/api/snippets/search?q=${encodeURIComponent(query)}`
+          );
+
+          setPage("search");
           setSearchResults(res.data || []);
         } catch (err) {
           console.error("tag filter error:", err);
+        } finally {
+          setLoading(false);
         }
       };
+
+
+    // Clear all filters
+    const clearFilter = () => {
+      setCurrentFilter([]);
+      setSearchResults([]);
+      setPage("home");
+    };
 
 
   // ========================= Render =========================
   return (
     <div className="min-h-screen w-full bg-gray-950 text-gray-200">
-      <Header current={page} onNavigate={handleNavigate} onLogout={onLogout} />
+      <Header
+        current={page}
+        onNavigate={handleNavigate}
+        onLogout={onLogout}
+        fetchSnippetsByTag={fetchSnippetsByTag}
+        clearFilter={clearFilter}
+        loading={loading}
+        currentFilter={currentFilter}
+      />
+
+
+
 
       <main className="w-full px-6 py-10 space-y-12">
         {page === "home" && (
