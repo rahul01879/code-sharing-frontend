@@ -1,5 +1,5 @@
 // src/pages/CodeSharingPage.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback} from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import Prism from "prismjs";
