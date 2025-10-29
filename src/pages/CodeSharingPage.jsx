@@ -1974,42 +1974,47 @@ const [loading, setLoading] = useState(false);
 
     // ========================= Tag Filtering =========================
      const fetchSnippetsByTag = async (tag) => {
-        try {
-          setLoading(true);
+      if (!tag) return;
+      setLoading(true);
 
-          setCurrentFilter((prevFilters) => {
-            const updatedFilters = Array.isArray(prevFilters)
-              ? prevFilters.includes(tag)
-                ? prevFilters.filter((t) => t !== tag)
-                : [...prevFilters, tag]
-              : [tag];
+      setCurrentFilter((prev) => {
+        // ensure it's always an array
+        const filters = Array.isArray(prev) ? [...prev] : [];
 
-            // if no filters left -> show home
-            if (updatedFilters.length === 0) {
-              setPage("home");
-              setSearchResults([]);
-              return [];
-            }
-
-            const query = updatedFilters.join(" ");
-            axios
-              .get(`${API}/api/snippets/search?q=${encodeURIComponent(query)}`)
-              .then((res) => {
-                const results = Array.isArray(res.data) ? res.data : [];
-                setSearchResults(results);
-                setSearchQuery(query);
-                setPage("search");
-              })
-              .catch((err) => console.error("tag filter error:", err))
-              .finally(() => setLoading(false));
-
-            return updatedFilters;
-          });
-        } catch (err) {
-          console.error("tag filter error:", err);
-          setLoading(false);
+        // toggle filter on/off
+        if (filters.includes(tag)) {
+          filters.splice(filters.indexOf(tag), 1);
+        } else {
+          filters.push(tag);
         }
-      };
+
+        // if no filters, reset to home
+        if (filters.length === 0) {
+          setPage("home");
+          setSearchResults([]);
+          setLoading(false);
+          return [];
+        }
+
+        // build query from all active filters
+        const query = filters.join(" ");
+        axios
+          .get(`${API}/api/snippets/search?q=${encodeURIComponent(query)}`)
+          .then((res) => {
+            const results = res.data.snippets || res.data || [];
+            setSearchResults(results);
+            setSearchQuery(query);
+            setPage("search");
+          })
+          .catch((err) => {
+            console.error("tag filter error:", err);
+          })
+          .finally(() => setLoading(false));
+
+        return filters;
+      });
+    };
+
 
 
     // Clear all filters
@@ -2069,36 +2074,74 @@ const [loading, setLoading] = useState(false);
           <Profile user={currentUser} total={userSnippets.length} />
         )}
 
-        {/* ✅ Search Results */}
-        {page === "search" && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4">
-              🔍 Search Results for "<span className="text-blue-400">{searchQuery}</span>"
-            </h2>
-            {searchResults.length > 0 ? (
-              <SnippetGrid snippets={searchResults} onSelect={fetchSnippetById} />
-            ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
-                <div className="bg-gray-800/50 rounded-full p-4 mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-300 mb-1">No snippets found</h3>
-                <p className="text-sm text-gray-500">
-                  We couldn’t find any snippets for <span className="text-blue-400 font-medium">{searchQuery}</span>.
-                </p>
-                <button
-                  onClick={() => setPage("home")}
-                  className="mt-4 px-4 py-2 text-sm rounded-md bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:opacity-90 transition"
-                >
-                  🔙 Back to Home
-                </button>
-              </div>
+        {/* ✅ Search Results Section */}
+          {page === "search" && (
+            <div className="animate-fadeIn">
+              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 text-gray-200">
+                <span role="img" aria-label="search">🔍</span>
+                <span>
+                  Search Results for{" "}
+                  <span className="text-blue-400 font-semibold">{searchQuery}</span>
+                </span>
+              </h2>
 
-            )}
-          </div>
-        )}
+              {/* 🔄 Loading State */}
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+                  <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <p className="text-sm text-gray-400">Fetching your snippets...</p>
+                </div>
+              ) : searchResults.length > 0 ? (
+                /* ✅ Results Grid */
+                <SnippetGrid snippets={searchResults} onSelect={fetchSnippetById} />
+              ) : (
+                /* ❌ No Results Found */
+                <div className="flex flex-col items-center justify-center py-20 text-center text-gray-400 transition-all duration-300">
+                  <div className="bg-gradient-to-br from-blue-500/20 to-purple-600/10 rounded-full p-5 mb-5 shadow-lg">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-10 h-10 text-blue-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </div>
+
+                  <h3 className="text-lg font-semibold text-gray-200 mb-1">
+                    No snippets found
+                  </h3>
+                  <p className="text-sm text-gray-500 max-w-md">
+                    We couldn’t find any snippets matching{" "}
+                    <span className="text-blue-400 font-medium">{searchQuery}</span>.  
+                    Try searching with a different keyword or check your filters.
+                  </p>
+
+                  <div className="mt-6 flex flex-wrap gap-3 justify-center">
+                    <button
+                      onClick={() => setPage("home")}
+                      className="px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium shadow-md hover:opacity-90 transition"
+                    >
+                      🔙 Back to Home
+                    </button>
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="px-4 py-2 text-sm rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition"
+                    >
+                      Clear Search
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
 
         <SnippetModal
           snippet={selectedSnippet}
