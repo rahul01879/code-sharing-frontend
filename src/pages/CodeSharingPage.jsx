@@ -24,7 +24,7 @@ import { FaUser, FaEnvelope, FaCode, FaGithub, FaCalendarAlt, FaExternalLinkAlt 
 
 import { Home, PlusSquare, FileText, User, LogOut, Shield, FolderOpen,
          Edit2, Trash2, ArrowLeft, Github, Twitter, Linkedin, Mail, Code2, Menu,
-          X , Search, Folder,  Eye, Heart, MessageSquare } from "lucide-react";
+          X , Search, Folder,  Eye, Heart, MessageSquare, MessageCircle } from "lucide-react";
 
 
 
@@ -1816,7 +1816,7 @@ export default function CodeSharingPage({ onLogout }) {
 const [currentFilter, setCurrentFilter] = useState([]);
 const [loading, setLoading] = useState(false);
 
-
+const [trending, setTrending] = useState([]);
   // ✅ Search
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1874,6 +1874,14 @@ const [loading, setLoading] = useState(false);
       // Fetch collections
       fetchCollections();
     }
+
+// ✅ Fetch Trending Snippets
+axios
+  .get(`${API}/api/snippets/trending`)
+  .then((res) => setTrending(res.data || []))
+  .catch((err) => console.error("Error fetching trending:", err));
+
+
   }, []);
 
   // ========================= Collections =========================
@@ -1963,19 +1971,43 @@ const [loading, setLoading] = useState(false);
   };
 
   const handleLike = async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return alert("Login required to like snippets!");
-      const res = await axios.post(
-        `${API}/api/snippets/${id}/like`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      handleSnippetUpdate(res.data);
-    } catch (err) {
-      console.error("like error:", err);
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return alert("Login required to like snippets!");
+
+    const res = await axios.post(
+      `${API}/api/snippets/${id}/like`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // ✅ Backend now returns like count + likes array + message
+    const updatedSnippet = res.data;
+
+    // ✅ Merge into UI
+    setPublicSnippets((prev) =>
+      prev.map((s) =>
+        s._id === id ? { ...s, likes: updatedSnippet.likes } : s
+      )
+    );
+    setUserSnippets((prev) =>
+      prev.map((s) =>
+        s._id === id ? { ...s, likes: updatedSnippet.likes } : s
+      )
+    );
+    if (selectedSnippet && selectedSnippet._id === id) {
+      setSelectedSnippet((prev) => ({
+        ...prev,
+        likes: updatedSnippet.likes,
+      }));
     }
-  };
+
+    console.log(updatedSnippet.message);
+  } catch (err) {
+    console.error("like error:", err);
+  }
+};
+
 
   const handleComment = async (id, text) => {
     try {
@@ -2157,6 +2189,72 @@ const fetchSnippetsByTag = async (tag) => {
           <SnippetGrid snippets={publicSnippets} onSelect={fetchSnippetById} onTagClick={(tag) => fetchSnippetsByTag(tag)} />
 
         )}
+
+{/* 🔥 Trending Snippets Section */}
+{page === "home" && trending.length > 0 && (
+  <section className="mt-16 max-w-6xl mx-auto">
+    <div className="flex items-center justify-between mb-6 px-2">
+      <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-pink-500 flex items-center gap-2">
+        🔥 Trending Snippets
+      </h2>
+
+      <span className="text-sm text-gray-400">Top {Math.min(trending.length, 10)} this week</span>
+    </div>
+
+    {/* Scrollable Row */}
+    <div className="flex gap-6 overflow-x-auto pb-4 px-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900 snap-x snap-mandatory">
+      {trending.slice(0, 10).map((snippet) => (
+        <div
+          key={snippet._id}
+          onClick={() => fetchSnippetById(snippet._id)}
+          className="group cursor-pointer min-w-[280px] max-w-[320px] flex-shrink-0 snap-start p-5 rounded-2xl bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 border border-gray-800 hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300"
+        >
+          {/* Title */}
+          <h3 className="font-semibold text-lg text-gray-100 mb-2 group-hover:text-blue-400 transition">
+            {snippet.title || "Untitled Snippet"}
+          </h3>
+
+          {/* Description */}
+          <p className="text-gray-400 text-sm line-clamp-2 mb-3">
+            {snippet.description || "No description available."}
+          </p>
+
+          {/* Info Row */}
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
+            {snippet.language && (
+              <span className="flex items-center gap-1 bg-gray-800 px-2 py-0.5 rounded-full text-blue-300">
+                <Code2 size={14} /> {snippet.language}
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <Heart size={14} className="text-pink-500" />
+              {snippet.likes?.length || 0}
+            </span>
+            <span className="flex items-center gap-1">
+              <MessageCircle size={14} className="text-green-400" />
+              {snippet.comments?.length || 0}
+            </span>
+            <span className="flex items-center gap-1">
+              <Eye size={14} className="text-yellow-400" />
+              {snippet.views || 0}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+)}
+
+
+{page === "home" && trending.length === 0 && (
+  <div className="text-center text-gray-500 py-16">
+    <h3 className="text-lg font-semibold mb-1 text-gray-300">No Trending Snippets Yet</h3>
+    <p className="text-sm text-gray-500">❤️ Like some snippets to make them trend!</p>
+  </div>
+)}
+
+
+
 
         {page === "add" && <AddSnippetForm onAdd={handleAddSnippet} />}
 
