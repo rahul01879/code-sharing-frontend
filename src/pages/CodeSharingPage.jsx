@@ -1973,52 +1973,35 @@ const [loading, setLoading] = useState(false);
 
 
     // ========================= Tag Filtering =========================
-      const fetchSnippetsByTag = async (tag) => {
-        if (!tag) return;
-
+     const fetchSnippetsByTag = async (tag) => {
         try {
           setLoading(true);
 
-          setCurrentFilter((prev) => {
-            // ✅ Ensure it's always an array
-            let updatedFilters = Array.isArray(prev) ? [...prev] : [];
+          setCurrentFilter((prevFilters) => {
+            const updatedFilters = Array.isArray(prevFilters)
+              ? prevFilters.includes(tag)
+                ? prevFilters.filter((t) => t !== tag)
+                : [...prevFilters, tag]
+              : [tag];
 
-            // ✅ Toggle tag on/off
-            if (updatedFilters.includes(tag)) {
-              updatedFilters = updatedFilters.filter((t) => t !== tag);
-            } else {
-              updatedFilters.push(tag);
-            }
-
-            // ✅ If no filters left → show home
+            // if no filters left -> show home
             if (updatedFilters.length === 0) {
               setPage("home");
-              setSearchQuery("");
               setSearchResults([]);
-              setLoading(false);
               return [];
             }
 
-            // ✅ Build search query
             const query = updatedFilters.join(" ");
-
-            // ✅ Fetch filtered snippets
-            (async () => {
-              try {
-                const res = await axios.get(
-                  `${API}/api/snippets/search?q=${encodeURIComponent(query)}`
-                );
-
-                const data = res.data;
-                setPage("search");
+            axios
+              .get(`${API}/api/snippets/search?q=${encodeURIComponent(query)}`)
+              .then((res) => {
+                const results = Array.isArray(res.data) ? res.data : [];
+                setSearchResults(results);
                 setSearchQuery(query);
-                setSearchResults(Array.isArray(data.snippets) ? data.snippets : data || []);
-              } catch (err) {
-                console.error("tag filter error:", err);
-              } finally {
-                setLoading(false);
-              }
-            })();
+                setPage("search");
+              })
+              .catch((err) => console.error("tag filter error:", err))
+              .finally(() => setLoading(false));
 
             return updatedFilters;
           });
@@ -2027,7 +2010,6 @@ const [loading, setLoading] = useState(false);
           setLoading(false);
         }
       };
-
 
 
     // Clear all filters
@@ -2096,9 +2078,24 @@ const [loading, setLoading] = useState(false);
             {searchResults.length > 0 ? (
               <SnippetGrid snippets={searchResults} onSelect={fetchSnippetById} />
             ) : (
-              <p className="text-gray-500 text-center mt-10">
-                🚫 No results found for "{searchQuery}".
-              </p>
+              <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
+                <div className="bg-gray-800/50 rounded-full p-4 mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-300 mb-1">No snippets found</h3>
+                <p className="text-sm text-gray-500">
+                  We couldn’t find any snippets for <span className="text-blue-400 font-medium">{searchQuery}</span>.
+                </p>
+                <button
+                  onClick={() => setPage("home")}
+                  className="mt-4 px-4 py-2 text-sm rounded-md bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:opacity-90 transition"
+                >
+                  🔙 Back to Home
+                </button>
+              </div>
+
             )}
           </div>
         )}
