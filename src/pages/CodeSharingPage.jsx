@@ -81,6 +81,14 @@ function timeAgo(date) {
 }
 
 // ---------------- Header ----------------
+function debounce(func, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => func(...args), delay);
+  };
+}
+
 function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const [menuOpen, setMenuOpen] = useState(false);
@@ -113,12 +121,20 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     setLoading(true);
     try {
       const allResults = [];
+      // fetchSnippetsByTag should return an array of snippets for the given tag
       for (const lang of filters) {
-        const data = await fetchSnippetsByTag(lang);
-        if (data && Array.isArray(data)) allResults.push(...data);
+        try {
+          const data = await fetchSnippetsByTag(lang);
+          if (data && Array.isArray(data)) allResults.push(...data);
+        } catch (err) {
+          console.error("Error fetching tag", lang, err);
+        }
       }
 
-      const uniqueResults = Array.from(new Map(allResults.map((s) => [s._id, s])).values());
+      // remove duplicates by _id
+      const uniqueResults = Array.from(
+        new Map(allResults.map((s) => [s._id, s])).values()
+      );
       onNavigate("search", uniqueResults);
     } finally {
       setLoading(false);
@@ -144,7 +160,21 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     handleNavigate("home");
   };
 
-  // ✅ Modern animation styles
+  // ✅ Debounced search handler: pass query string to parent
+  // (parent / top-level will handle making the backend request)
+  const handleSearch = useCallback(
+    debounce((query) => {
+      if (!query || !query.trim()) {
+        onNavigate("home"); // 🏠 go back home if empty
+        return;
+      }
+      // pass the raw query string to parent; parent will call the API and set results
+      onNavigate("search", query);
+    }, 400),
+    [onNavigate]
+  );
+
+  // Modern animation styles
   const filterColors = [
     "from-blue-500 to-cyan-500",
     "from-purple-500 to-pink-500",
@@ -195,18 +225,17 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
           {/* Search */}
           <div className="relative ml-3">
             <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-           <input
-  type="text"
-  placeholder="Search snippets..."
-  className="pl-9 pr-4 py-2 rounded-full bg-gray-800/80 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 lg:w-64 transition-all"
-  value={search}
-  onChange={(e) => {
-    const value = e.target.value;
-    setSearch(value);
-    handleSearch(value); // ✅ new function below
-  }}
-/>
-
+            <input
+              type="text"
+              placeholder="Search snippets..."
+              className="pl-9 pr-4 py-2 rounded-full bg-gray-800/80 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 lg:w-64 transition-all"
+              value={search}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearch(value);
+                handleSearch(value);
+              }}
+            />
           </div>
 
           {/* Logout */}
@@ -248,8 +277,10 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
               className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={search}
               onChange={(e) => {
-                setSearch(e.target.value);
-                handleNavigate("search", e.target.value);
+                const value = e.target.value;
+                setSearch(value);
+                // Keep mobile consistent with desktop: pass query string to parent
+                handleNavigate("search", value);
               }}
             />
           </div>
@@ -292,33 +323,35 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
               Quick filters:
             </span>
 
-            {["javascript", "python", "java", "php", "typescript", "go", "ruby", "csharp"].map(
-              (lang, i) => (
-                <button
-                  key={lang}
-                  onClick={() => handleFilterClick(lang)}
-                  className={`flex-shrink-0 px-4 py-1.5 text-xs rounded-full font-semibold transition-all duration-300 ${
-                    activeFilters.includes(lang)
-                      ? `bg-gradient-to-r ${filterColors[i % filterColors.length]} text-white shadow-md scale-105`
-                      : "bg-gray-800/70 border border-gray-700 text-gray-300 hover:bg-blue-600/30 hover:text-blue-300"
-                  }`}
-                >
-                  {lang}
-                </button>
-              )
-            )}
+            {[
+              "javascript",
+              "python",
+              "java",
+              "php",
+              "typescript",
+              "go",
+              "ruby",
+              "csharp",
+            ].map((lang, i) => (
+              <button
+                key={lang}
+                onClick={() => handleFilterClick(lang)}
+                className={`flex-shrink-0 px-4 py-1.5 text-xs rounded-full font-semibold transition-all duration-300 ${
+                  activeFilters.includes(lang)
+                    ? `bg-gradient-to-r ${filterColors[i % filterColors.length]} text-white shadow-md scale-105`
+                    : "bg-gray-800/70 border border-gray-700 text-gray-300 hover:bg-blue-600/30 hover:text-blue-300"
+                }`}
+              >
+                {lang}
+              </button>
+            ))}
 
             {loading && (
-              <span className="text-sm text-gray-400 ml-2 animate-pulse">
-                Loading…
-              </span>
+              <span className="text-sm text-gray-400 ml-2 animate-pulse">Loading…</span>
             )}
 
             {activeFilters.length > 0 && (
-              <button
-                onClick={clearAllFilters}
-                className="ml-auto text-xs text-red-400 hover:underline"
-              >
+              <button onClick={clearAllFilters} className="ml-auto text-xs text-red-400 hover:underline">
                 Clear all
               </button>
             )}
@@ -335,7 +368,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
                   {f}
                   <button
                     onClick={() => removeFilter(f)}
-                    className="text-gray-400 hover:text-red-400 transition"
+                    className="text-gray-400 hover:text-red-400 transition ml-1"
                   >
                     ✕
                   </button>
@@ -348,6 +381,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     </header>
   );
 }
+
 
 
 
@@ -1992,26 +2026,6 @@ const [loading, setLoading] = useState(false);
     }
   };
 
-
-  // ✅ Debounced search handler
-const handleSearch = useCallback(
-  debounce(async (query) => {
-    if (!query.trim()) {
-      onNavigate("home"); // 🏠 go back home if empty
-      return;
-    }
-
-    try {
-      const res = await axios.get(`${API}/api/snippets/search?q=${encodeURIComponent(query)}`);
-      onNavigate("search", res.data || []); // 🚀 send results to main page
-    } catch (err) {
-      console.error("Search error:", err);
-    }
-  }, 400), // ⏱ debounce: wait 400ms after user stops typing
-  []
-);
-
-
 function debounce(func, delay) {
   let timer;
   return (...args) => {
@@ -2022,88 +2036,94 @@ function debounce(func, delay) {
 
 
 
+
   // ========================= Search =========================
   // update handleNavigate (search)
-   const handleNavigate = async (targetPage, query) => {
-      setPage(targetPage);
+const handleNavigate = async (targetPage, query) => {
+  setPage(targetPage);
 
-      // ✅ Normalize query so it's always a string
-      const normalizedQuery = Array.isArray(query)
-        ? query.join(" ")
-        : (query || "").toString();
+  // If caller passed an array of snippet objects, show them directly
+  if (targetPage === "search" && Array.isArray(query)) {
+    setSearchResults(query);
+    setSearchQuery(""); // optional: no text query
+    return;
+  }
 
-      if (targetPage === "search") {
-        setSearchQuery(normalizedQuery);
+  // Normalize query into a string
+  const normalizedQuery = Array.isArray(query)
+    ? query.join(" ")
+    : (query || "").toString();
 
-        if (searchDebounceRef.current)
-          clearTimeout(searchDebounceRef.current);
+  if (targetPage === "search") {
+    setSearchQuery(normalizedQuery);
 
-        searchDebounceRef.current = setTimeout(async () => {
-          if (!normalizedQuery.trim()) {
-            setSearchResults([]);
-            return;
-          }
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
 
-          try {
-            const res = await axios.get(
-              `${API}/api/snippets/search?q=${encodeURIComponent(normalizedQuery)}`
-            );
-            setSearchResults(res.data || []);
-          } catch (err) {
-            console.error("search error:", err);
-          }
-        }, 350);
+    searchDebounceRef.current = setTimeout(async () => {
+      if (!normalizedQuery.trim()) {
+        setSearchResults([]);
+        return;
       }
-    };
+
+      setLoading(true);
+      try {
+        const res = await axios.get(
+          `${API}/api/snippets/search?q=${encodeURIComponent(normalizedQuery)}`
+        );
+        setSearchResults(res.data || []);
+      } catch (err) {
+        console.error("search error:", err);
+        setSearchResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 350);
+  }
+};
 
 
     // ========================= Tag Filtering =========================
-     const fetchSnippetsByTag = async (tag) => {
+  // top-level component
+const fetchSnippetsByTag = async (tag) => {
   try {
-    // ✅ Step 1: Toggle tag in current filters
-    setCurrentFilter((prev) => {
-       if (!Array.isArray(prev)) prev = []; 
-      const updated = prev.includes(tag)
-        ? prev.filter((t) => t !== tag)
-        : [...prev, tag];
+    // toggle the tag in currentFilter
+    const prev = Array.isArray(currentFilter) ? currentFilter : [];
+    const updated = prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag];
 
-      // ✅ Step 2: If no filters left → show home page
-      if (updated.length === 0) {
-        setSearchResults([]);
-        setSearchQuery("");
-        setPage("home");
-        return [];
-      }
+    setCurrentFilter(updated);
 
-      // ✅ Step 3: Build query string (space-separated for multiple tags)
-      const query = updated.join(" ");
+    // if no filters -> reset
+    if (updated.length === 0) {
+      setSearchResults([]);
+      setSearchQuery("");
+      setPage("home");
+      return [];
+    }
 
-      // ✅ Step 4: Fetch snippets for combined filters
-      (async () => {
-        setLoading(true);
-        try {
-          const res = await axios.get(
-            `${API}/api/snippets/search?q=${encodeURIComponent(query)}`
-          );
+    // Build a query (space-separated or join by space)
+    const query = updated.join(" ");
 
-          const data = res.data || [];
-          setSearchResults(data);
-          setPage("search");
-          setSearchQuery(query);
-        } catch (err) {
-          console.error("Tag filter fetch error:", err);
-          setSearchResults([]);
-        } finally {
-          setLoading(false);
-        }
-      })();
-
-      return updated;
-    });
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/api/snippets/search?q=${encodeURIComponent(query)}`);
+      const data = res.data || [];
+      setSearchResults(data);
+      setPage("search");
+      setSearchQuery(query);
+      return data;
+    } catch (err) {
+      console.error("Tag filter fetch error:", err);
+      setSearchResults([]);
+      return [];
+    } finally {
+      setLoading(false);
+    }
   } catch (err) {
     console.error("Tag filter error:", err);
+    return [];
   }
 };
+
 
 
 
