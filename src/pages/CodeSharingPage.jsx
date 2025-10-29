@@ -118,26 +118,23 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
         if (data && Array.isArray(data)) allResults.push(...data);
       }
 
-      // remove duplicates
-      const uniqueResults = Array.from(new Map(allResults.map(s => [s._id, s])).values());
-
+      const uniqueResults = Array.from(new Map(allResults.map((s) => [s._id, s])).values());
       onNavigate("search", uniqueResults);
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Toggle language filter
   const handleFilterClick = async (lang) => {
     const updated = activeFilters.includes(lang)
-      ? activeFilters.filter(f => f !== lang)
+      ? activeFilters.filter((f) => f !== lang)
       : [...activeFilters, lang];
     setActiveFilters(updated);
     await applyFilters(updated);
   };
 
   const removeFilter = async (lang) => {
-    const updated = activeFilters.filter(f => f !== lang);
+    const updated = activeFilters.filter((f) => f !== lang);
     setActiveFilters(updated);
     await applyFilters(updated);
   };
@@ -146,6 +143,16 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     setActiveFilters([]);
     handleNavigate("home");
   };
+
+  // ✅ Modern animation styles
+  const filterColors = [
+    "from-blue-500 to-cyan-500",
+    "from-purple-500 to-pink-500",
+    "from-green-500 to-teal-500",
+    "from-orange-500 to-yellow-500",
+    "from-rose-500 to-pink-500",
+    "from-indigo-500 to-purple-500",
+  ];
 
   return (
     <header className="sticky top-0 z-50 w-full bg-gray-950/90 backdrop-blur-md border-b border-gray-800 shadow-md">
@@ -159,7 +166,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
           CODE<span className="text-gray-300">X</span>
         </button>
 
-        {/* Navigation */}
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-3 lg:gap-4">
           {navItems.map((item) => (
             <button
@@ -211,13 +218,13 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
           )}
         </nav>
 
-        {/* Mobile controls */}
+        {/* Mobile Controls */}
         <div className="flex items-center gap-3 md:hidden">
           <button
             onClick={() => setShowSearch((prev) => !prev)}
             className="text-gray-300 hover:text-white p-1.5 rounded-full transition"
           >
-            <Search size={24} />
+            <Search size={22} />
           </button>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
@@ -228,22 +235,69 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
         </div>
       </div>
 
-      {/* --- Quick Filters --- */}
+      {/* --- Mobile Search Bar --- */}
+      {showSearch && (
+        <div className="md:hidden px-4 pb-3 animate-fade-in">
+          <div className="relative">
+            <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search snippets..."
+              className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                handleNavigate("search", e.target.value);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* --- Mobile Menu --- */}
+      {menuOpen && (
+        <div className="md:hidden bg-gray-900 border-t border-gray-800 animate-slide-down">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleNavigate(item.id)}
+              className={`w-full flex items-center gap-2 px-6 py-3 text-sm font-medium text-left transition ${
+                current === item.id
+                  ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300"
+                  : "text-gray-300 hover:bg-gray-800"
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center gap-2 px-6 py-3 text-sm text-red-400 hover:bg-gray-800 transition"
+            >
+              <LogOut size={18} /> Logout
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* --- Modern Quick Filters --- */}
       {(current === "home" || current === "search") && (
-        <div className="relative border-t border-gray-800">
+        <div className="border-t border-gray-800 bg-gray-950/80 backdrop-blur-sm">
           <div className="flex items-center overflow-x-auto gap-3 px-4 sm:px-8 py-3 scrollbar-hide">
             <span className="text-sm text-gray-400 flex-shrink-0 font-medium">
               Quick filters:
             </span>
 
             {["javascript", "python", "java", "php", "typescript", "go", "ruby", "csharp"].map(
-              (lang) => (
+              (lang, i) => (
                 <button
                   key={lang}
                   onClick={() => handleFilterClick(lang)}
                   className={`flex-shrink-0 px-4 py-1.5 text-xs rounded-full font-semibold transition-all duration-300 ${
                     activeFilters.includes(lang)
-                      ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md scale-105"
+                      ? `bg-gradient-to-r ${filterColors[i % filterColors.length]} text-white shadow-md scale-105`
                       : "bg-gray-800/70 border border-gray-700 text-gray-300 hover:bg-blue-600/30 hover:text-blue-300"
                   }`}
                 >
@@ -292,6 +346,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     </header>
   );
 }
+
 
 
 
