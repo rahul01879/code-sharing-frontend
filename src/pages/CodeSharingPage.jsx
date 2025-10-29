@@ -1722,7 +1722,7 @@ export default function CodeSharingPage({ onLogout }) {
   const [selectedCollection, setSelectedCollection] = useState(null);
 
 // near the top of the component, add new states
-const [currentFilter, setCurrentFilter] = useState(null);
+const [currentFilter, setCurrentFilter] = useState([]);
 const [loading, setLoading] = useState(false);
 
 
@@ -1977,6 +1977,7 @@ const [loading, setLoading] = useState(false);
   try {
     // ✅ Step 1: Toggle tag in current filters
     setCurrentFilter((prev) => {
+       if (!Array.isArray(prev)) prev = []; 
       const updated = prev.includes(tag)
         ? prev.filter((t) => t !== tag)
         : [...prev, tag];
