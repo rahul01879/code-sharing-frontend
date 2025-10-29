@@ -1974,46 +1974,51 @@ const [loading, setLoading] = useState(false);
 
     // ========================= Tag Filtering =========================
      const fetchSnippetsByTag = async (tag) => {
-      if (!tag) return;
-      setLoading(true);
+  try {
+    // ✅ Step 1: Toggle tag in current filters
+    setCurrentFilter((prev) => {
+      const updated = prev.includes(tag)
+        ? prev.filter((t) => t !== tag)
+        : [...prev, tag];
 
-      setCurrentFilter((prev) => {
-        // ensure it's always an array
-        const filters = Array.isArray(prev) ? [...prev] : [];
+      // ✅ Step 2: If no filters left → show home page
+      if (updated.length === 0) {
+        setSearchResults([]);
+        setSearchQuery("");
+        setPage("home");
+        return [];
+      }
 
-        // toggle filter on/off
-        if (filters.includes(tag)) {
-          filters.splice(filters.indexOf(tag), 1);
-        } else {
-          filters.push(tag);
-        }
+      // ✅ Step 3: Build query string (space-separated for multiple tags)
+      const query = updated.join(" ");
 
-        // if no filters, reset to home
-        if (filters.length === 0) {
-          setPage("home");
+      // ✅ Step 4: Fetch snippets for combined filters
+      (async () => {
+        setLoading(true);
+        try {
+          const res = await axios.get(
+            `${API}/api/snippets/search?q=${encodeURIComponent(query)}`
+          );
+
+          const data = res.data || [];
+          setSearchResults(data);
+          setPage("search");
+          setSearchQuery(query);
+        } catch (err) {
+          console.error("Tag filter fetch error:", err);
           setSearchResults([]);
+        } finally {
           setLoading(false);
-          return [];
         }
+      })();
 
-        // build query from all active filters
-        const query = filters.join(" ");
-        axios
-          .get(`${API}/api/snippets/search?q=${encodeURIComponent(query)}`)
-          .then((res) => {
-            const results = res.data.snippets || res.data || [];
-            setSearchResults(results);
-            setSearchQuery(query);
-            setPage("search");
-          })
-          .catch((err) => {
-            console.error("tag filter error:", err);
-          })
-          .finally(() => setLoading(false));
+      return updated;
+    });
+  } catch (err) {
+    console.error("Tag filter error:", err);
+  }
+};
 
-        return filters;
-      });
-    };
 
 
 
