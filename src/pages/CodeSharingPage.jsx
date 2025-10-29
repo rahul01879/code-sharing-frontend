@@ -195,16 +195,18 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
           {/* Search */}
           <div className="relative ml-3">
             <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search snippets..."
-              className="pl-9 pr-4 py-2 rounded-full bg-gray-800/80 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 lg:w-64 transition-all"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                handleNavigate("search", e.target.value);
-              }}
-            />
+           <input
+  type="text"
+  placeholder="Search snippets..."
+  className="pl-9 pr-4 py-2 rounded-full bg-gray-800/80 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 lg:w-64 transition-all"
+  value={search}
+  onChange={(e) => {
+    const value = e.target.value;
+    setSearch(value);
+    handleSearch(value); // ✅ new function below
+  }}
+/>
+
           </div>
 
           {/* Logout */}
@@ -1989,6 +1991,34 @@ const [loading, setLoading] = useState(false);
       alert(err.message || "Sync failed");
     }
   };
+
+
+  // ✅ Debounced search handler
+const handleSearch = useCallback(
+  debounce(async (query) => {
+    if (!query.trim()) {
+      onNavigate("home"); // 🏠 go back home if empty
+      return;
+    }
+
+    try {
+      const res = await axios.get(`${API}/api/snippets/search?q=${encodeURIComponent(query)}`);
+      onNavigate("search", res.data || []); // 🚀 send results to main page
+    } catch (err) {
+      console.error("Search error:", err);
+    }
+  }, 400), // ⏱ debounce: wait 400ms after user stops typing
+  []
+);
+
+
+function debounce(func, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => func(...args), delay);
+  };
+}
 
 
 
