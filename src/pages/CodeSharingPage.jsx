@@ -1438,7 +1438,7 @@ function Profile() {
   const [checking, setChecking] = useState(true);
   const [totalSnippets, setTotalSnippets] = useState(0);
 
-  // ✅ Fetch user profile (username, email, etc.)
+  // ✅ Fetch user profile
   const fetchUserProfile = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -1450,7 +1450,7 @@ function Profile() {
     if (res.ok) setUser(data.user);
   };
 
-  // ✅ Load GitHub status on mount
+  // ✅ GitHub status
   const fetchGitHubStatus = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -1481,7 +1481,7 @@ function Profile() {
     }
   };
 
-  // ✅ Fetch user snippets count
+  // ✅ Snippet count
   const fetchSnippetCount = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -1501,7 +1501,7 @@ function Profile() {
     fetchSnippetCount();
   }, []);
 
-  // ✅ Verify token with GitHub API (for manual connect)
+  // ✅ GitHub Token Verification
   const verifyGitHubToken = async (token) => {
     try {
       const res = await fetch("https://api.github.com/user", {
@@ -1514,21 +1514,14 @@ function Profile() {
     }
   };
 
-  // ✅ Save + verify GitHub token
   const handleSaveGithubToken = async () => {
-    if (!githubToken.trim()) {
-      alert("Please enter your GitHub personal access token");
-      return;
-    }
+    if (!githubToken.trim()) return alert("Please enter your GitHub token");
 
     try {
       setLoading(true);
       const appToken = localStorage.getItem("token");
       const profile = await verifyGitHubToken(githubToken);
-      if (!profile) {
-        alert("❌ Invalid or expired GitHub token.");
-        return;
-      }
+      if (!profile) return alert("❌ Invalid GitHub token");
 
       const res = await fetch(`${API}/api/user/github-token`, {
         method: "POST",
@@ -1539,35 +1532,31 @@ function Profile() {
         body: JSON.stringify({ token: githubToken }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to save GitHub token");
+      if (!res.ok) throw new Error("Failed to save GitHub token");
 
       setGithubConnected(true);
       setGithubProfile(profile);
       setGithubToken("");
-      alert(`✅ Connected to GitHub as ${profile.login}`);
+      alert(`✅ Connected as ${profile.login}`);
     } catch (err) {
       console.error("GitHub connect error:", err);
-      alert(err.message || "Failed to connect GitHub");
+      alert("❌ Connection failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Disconnect GitHub
   const handleDisconnectGithub = async () => {
-    if (!window.confirm("Disconnect your GitHub account?")) return;
-
+    if (!window.confirm("Disconnect GitHub?")) return;
     try {
       const token = localStorage.getItem("token");
       await fetch(`${API}/api/user/github-token`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-
       setGithubConnected(false);
       setGithubProfile(null);
-      alert("🔌 GitHub disconnected.");
+      alert("🔌 GitHub disconnected");
     } catch (err) {
       console.error("Disconnect error:", err);
       alert("❌ Failed to disconnect GitHub");
@@ -1576,82 +1565,78 @@ function Profile() {
 
   if (checking) {
     return (
-      <div className="flex justify-center items-center min-h-[200px] text-gray-400">
-        Checking GitHub connection...
+      <div className="flex justify-center items-center min-h-[300px] text-gray-400 animate-pulse">
+        Checking your profile...
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8 rounded-3xl shadow-2xl border border-gray-800 text-gray-100">
-      {/* Profile Header */}
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8">
-        <div className="relative">
-          <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg ring-4 ring-gray-900 bg-gray-700 flex items-center justify-center">
-            {githubProfile?.avatar_url ? (
-              <img
-                src={githubProfile.avatar_url}
-                alt="GitHub avatar"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <FaUser className="text-white text-4xl" />
-            )}
+    <div className="max-w-4xl mx-auto px-4 sm:px-8 py-12">
+      {/* Header */}
+      <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl p-8 border border-gray-800 shadow-2xl">
+        <div className="flex flex-col sm:flex-row items-center gap-8">
+          <div className="relative">
+            <div className="w-28 h-28 rounded-full overflow-hidden ring-4 ring-blue-600 shadow-lg">
+              {githubProfile?.avatar_url ? (
+                <img
+                  src={githubProfile.avatar_url}
+                  alt="GitHub avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <FaUser className="text-white text-5xl flex items-center justify-center h-full w-full bg-gray-700" />
+              )}
+            </div>
+            <div className="absolute bottom-2 right-2 w-4 h-4 bg-green-500 border-2 border-gray-900 rounded-full animate-pulse"></div>
           </div>
-          <div className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-gray-900 rounded-full animate-pulse"></div>
+
+          <div className="text-center sm:text-left">
+            <h2 className="text-3xl font-bold text-white tracking-tight">
+              {user?.username || "Anonymous User"}
+            </h2>
+            <p className="text-gray-400 text-sm">{user?.email || "No email"}</p>
+            <div className="flex items-center justify-center sm:justify-start gap-2 text-gray-500 mt-2 text-sm">
+              <FaCalendarAlt className="text-blue-400" />
+              <span>
+                Joined{" "}
+                {user?.createdAt
+                  ? new Date(user.createdAt).toLocaleDateString()
+                  : "N/A"}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div>
-          <h2 className="text-3xl font-extrabold text-white mb-1">
-            {user?.username || "User"}
-          </h2>
-          <p className="text-gray-400 text-sm">
-            {user?.email || "No email provided"}
-          </p>
-          <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-            <FaCalendarAlt className="text-blue-400" />
-            <span>
-              Joined{" "}
-              {user?.createdAt
-                ? new Date(user.createdAt).toLocaleDateString()
-                : "N/A"}
-            </span>
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-10 text-center">
+          <div className="p-4 bg-gray-800/70 rounded-2xl border border-gray-700">
+            <FaCode className="text-purple-400 mx-auto text-2xl mb-2" />
+            <h3 className="font-semibold">Snippets</h3>
+            <p className="text-2xl font-bold text-white">{totalSnippets}</p>
           </div>
-        </div>
-      </div>
-
-      <div className="h-[1px] bg-gradient-to-r from-transparent via-gray-700 to-transparent mb-8"></div>
-
-      {/* Info Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="p-5 bg-gray-800/70 rounded-2xl border border-gray-700">
-          <div className="flex items-center gap-3 mb-2">
-            <FaUser className="text-blue-400" />
-            <h3 className="font-semibold">Username</h3>
+          <div className="p-4 bg-gray-800/70 rounded-2xl border border-gray-700">
+            <FaGithub className="text-gray-100 mx-auto text-2xl mb-2" />
+            <h3 className="font-semibold">GitHub</h3>
+            <p
+              className={`text-lg font-semibold ${
+                githubConnected ? "text-green-400" : "text-gray-400"
+              }`}
+            >
+              {githubConnected ? "Connected" : "Not Connected"}
+            </p>
           </div>
-          <p>{user?.username || "N/A"}</p>
-        </div>
-
-        <div className="p-5 bg-gray-800/70 rounded-2xl border border-gray-700">
-          <div className="flex items-center gap-3 mb-2">
-            <FaEnvelope className="text-green-400" />
-            <h3 className="font-semibold">Email</h3>
+          <div className="p-4 bg-gray-800/70 rounded-2xl border border-gray-700">
+            <FaUser className="text-blue-400 mx-auto text-2xl mb-2" />
+            <h3 className="font-semibold">Account</h3>
+            <p className="text-sm text-gray-400">Active</p>
           </div>
-          <p>{user?.email || "N/A"}</p>
-        </div>
-
-        <div className="p-5 bg-gray-800/70 rounded-2xl border border-gray-700 sm:col-span-2">
-          <div className="flex items-center gap-3 mb-2">
-            <FaCode className="text-purple-400" />
-            <h3 className="font-semibold">Total Snippets</h3>
-          </div>
-          <p className="text-2xl font-bold">{totalSnippets}</p>
         </div>
       </div>
 
       {/* GitHub Integration */}
-      <div className="mt-10 bg-gray-800/70 rounded-2xl p-6 border border-gray-700 shadow">
-        <div className="flex items-center gap-3 mb-3">
+      <div className="mt-10 bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-700">
+        <div className="flex items-center gap-3 mb-4">
           <FaGithub className="text-white text-2xl" />
           <h3 className="text-lg font-semibold text-white">
             GitHub Integration
@@ -1660,7 +1645,7 @@ function Profile() {
 
         {githubConnected && githubProfile ? (
           <div className="space-y-3">
-            <p className="text-green-400 text-sm flex items-center gap-2">
+            <p className="text-green-400 flex items-center gap-2">
               ✅ Connected as{" "}
               <a
                 href={githubProfile.html_url}
@@ -1671,31 +1656,34 @@ function Profile() {
                 {githubProfile.login} <FaExternalLinkAlt size={10} />
               </a>
             </p>
-
             {githubProfile.email && (
-              <p className="text-gray-400 text-sm">📧 {githubProfile.email}</p>
+              <p className="text-gray-400 text-sm">
+                📧 {githubProfile.email}
+              </p>
             )}
-
             <button
               onClick={handleDisconnectGithub}
-              className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm text-white transition"
+              className="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-lg text-sm text-white transition font-medium"
             >
               Disconnect
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
+            <p className="text-gray-400 text-sm">
+              Connect your GitHub account to share snippets and sync activity.
+            </p>
             <input
               type="password"
-              placeholder="Enter your GitHub Personal Access Token"
+              placeholder="Enter GitHub Personal Access Token"
               value={githubToken}
               onChange={(e) => setGithubToken(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 bg-gray-700/70 text-white rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
             />
             <button
               onClick={handleSaveGithubToken}
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm text-white disabled:opacity-60"
+              className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg text-sm text-white disabled:opacity-60 transition font-medium"
             >
               {loading ? "Connecting..." : "Connect GitHub"}
             </button>
@@ -1705,6 +1693,7 @@ function Profile() {
     </div>
   );
 }
+
 
 function Footer() {
   return (
@@ -2310,72 +2299,74 @@ export default function CodeSharingPage({ onLogout }) {
           </div>
         )}
 
-        {page === "explore" && (
-          <div className="px-6 py-8 space-y-10">
-            {loadingExplore ? (
-              <div className="flex justify-center items-center text-gray-400">
-                Loading explore...
-              </div>
-            ) : exploreData && exploreData.trending ? (
-              <>
-                {/* Trending */}
-                <section>
-                  <h2 className="text-2xl font-bold text-gray-100 mb-3">
-                    🔥 Trending Snippets
-                  </h2>
-                  <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide">
-                    {exploreData.trending.length > 0 ? (
-                      exploreData.trending.map((s) => (
-                        <div key={s._id} className="flex-shrink-0 w-72">
-                          <SnippetGrid snippets={[s]} onSelect={fetchSnippetById} />
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-400 text-sm">
-                        No trending snippets yet.
-                      </p>
-                    )}
-                  </div>
-                </section>
-
-                {/* Recent */}
-                <section>
-                  <h2 className="text-2xl font-bold text-gray-100 mb-3">
-                    🆕 Recently Added
-                  </h2>
-                  <SnippetGrid
-                    snippets={exploreData.recent || []}
-                    onSelect={fetchSnippetById}
-                  />
-                </section>
-
-                {/* By Language */}
-                {Object.entries(exploreData.byLanguage || {}).map(([lang, snippets]) => (
-                  <section key={lang}>
-                    <h2 className="text-xl font-semibold text-gray-100 capitalize mb-3">
-                      💻 {lang} Snippets
-                    </h2>
-                    <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide">
-                      {snippets.length > 0 ? (
-                        snippets.map((s) => (
-                          <div key={s._id} className="flex-shrink-0 w-72">
-                            <SnippetGrid snippets={[s]} onSelect={fetchSnippetById} />
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-400 text-sm">
-                          No snippets available.
-                        </p>
-                      )}
-                    </div>
-                  </section>
-                ))}
-              </>
-            ) : (
-              <p className="text-gray-500 text-center">Failed to load explore data.</p>
-            )}
+{page === "explore" && (
+  <div className="w-full min-h-screen bg-[#0b0c10] text-gray-200 px-4 sm:px-6 md:px-10 lg:px-16 py-10">
+    {loadingExplore ? (
+      <div className="flex justify-center items-center h-64 text-gray-400 text-lg animate-pulse">
+        Loading explore...
+      </div>
+    ) : exploreData && exploreData.trending ? (
+      <div className="max-w-[1300px] mx-auto flex flex-col gap-20">
+        {/* 🔥 Trending Snippets */}
+        <section className="space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-blue-400 flex items-center gap-2">
+              🔥 Trending Snippets
+            </h2>
+            <span className="text-gray-500 text-sm sm:text-base mt-2 sm:mt-0">
+              Most liked snippets this week
+            </span>
           </div>
-        )}
+
+          <SnippetGrid snippets={exploreData.trending} onSelect={fetchSnippetById} />
+        </section>
+
+        {/* 🆕 Recently Added */}
+        <section className="space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-green-400 flex items-center gap-2">
+              🆕 Recently Added
+            </h2>
+            <span className="text-gray-500 text-sm sm:text-base mt-2 sm:mt-0">
+              Fresh snippets added by the community
+            </span>
+          </div>
+
+          <SnippetGrid snippets={exploreData.recent} onSelect={fetchSnippetById} />
+        </section>
+
+        {/* 💻 By Language */}
+        {Object.entries(exploreData.byLanguage || {}).map(([lang, snippets]) => (
+          <section key={lang} className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-purple-400 capitalize flex items-center gap-2">
+                💻 {lang} Snippets
+              </h2>
+              <span className="text-gray-500 text-sm sm:text-base mt-2 sm:mt-0">
+                Curated in {lang}
+              </span>
+            </div>
+
+            <SnippetGrid snippets={snippets} onSelect={fetchSnippetById} />
+          </section>
+        ))}
+      </div>
+    ) : (
+      <p className="text-gray-500 text-center text-lg">
+        ⚠️ Failed to load explore data.
+      </p>
+    )}
+  </div>
+)}
+
+
+
+
+
+
+
+
+
 
 
         {page === "add" && <AddSnippetForm onAdd={handleAddSnippet} />}
