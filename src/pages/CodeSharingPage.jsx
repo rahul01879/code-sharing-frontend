@@ -1584,6 +1584,53 @@ function Profile() {
     }
   };
 
+  // ✅ Connect GitHub
+  const handleConnectGithub = async () => {
+    if (!githubToken.trim()) return alert("Enter your GitHub Personal Access Token");
+    const appToken = localStorage.getItem("token");
+    try {
+      const verify = await fetch("https://api.github.com/user", {
+        headers: { Authorization: `token ${githubToken}` },
+      });
+      if (!verify.ok) throw new Error("Invalid GitHub token");
+      const profile = await verify.json();
+
+      await fetch(`${API}/api/user/github-token`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${appToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token: githubToken }),
+      });
+
+      setGithubConnected(true);
+      setGithubProfile(profile);
+      setGithubToken("");
+      alert(`✅ Connected as ${profile.login}`);
+    } catch (err) {
+      console.error("GitHub connect error:", err);
+      alert("❌ Failed to connect GitHub");
+    }
+  };
+
+  // ✅ Disconnect GitHub
+  const handleDisconnectGithub = async () => {
+    if (!window.confirm("Are you sure you want to disconnect GitHub?")) return;
+    const token = localStorage.getItem("token");
+    try {
+      await fetch(`${API}/api/user/github-token`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setGithubConnected(false);
+      setGithubProfile(null);
+      alert("🔌 GitHub disconnected");
+    } catch (err) {
+      console.error("GitHub disconnect error:", err);
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
     fetchGitHubStatus();
@@ -1785,6 +1832,55 @@ function Profile() {
                 <p className="text-2xl font-bold">{insights.totalViews}</p>
               </div>
             </div>
+          </div>
+
+ {/* 🐙 GitHub Integration */}
+          <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800">
+            <div className="flex items-center gap-3 mb-4">
+              <FaGithub className="text-white text-2xl" />
+              <h3 className="text-lg font-semibold text-white">GitHub Integration</h3>
+            </div>
+
+            {githubConnected && githubProfile ? (
+              <div className="space-y-3">
+                <p className="text-green-400">
+                  ✅ Connected as{" "}
+                  <a
+                    href={githubProfile.html_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline"
+                  >
+                    {githubProfile.login}
+                  </a>
+                </p>
+                <button
+                  onClick={handleDisconnectGithub}
+                  className="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-lg text-sm text-white transition font-medium"
+                >
+                  Disconnect
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-gray-400 text-sm">
+                  Connect your GitHub to sync activity and show repositories.
+                </p>
+                <input
+                  type="password"
+                  placeholder="Enter GitHub Personal Access Token"
+                  value={githubToken}
+                  onChange={(e) => setGithubToken(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-700/70 text-white rounded-lg border border-gray-600"
+                />
+                <button
+                  onClick={handleConnectGithub}
+                  className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg text-sm text-white font-medium"
+                >
+                  Connect GitHub
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Recent Snippets */}
