@@ -22,11 +22,23 @@ import "prismjs/components/prism-java";
 import "prismjs/components/prism-ruby";
 import {
   FaUser,
-  FaEnvelope,
-  FaCode,
   FaGithub,
+  FaCode,
   FaCalendarAlt,
   FaExternalLinkAlt,
+  FaLinkedin,
+  FaTwitter,
+  FaChartLine,
+  FaCrown,
+  FaSun,
+  FaMoon,
+  FaEdit,
+  FaUpload,
+  FaSave,
+  FaTimes,
+  FaCodeBranch,
+  FaHeart,
+  FaEye,
 } from "react-icons/fa";
 
 import {
@@ -129,8 +141,13 @@ function debounce(func, delay) {
   };
 }
 
-
-function Header({ current, onNavigate, onLogout, fetchSnippetsByTag, fetchExploreSnippets }) {
+function Header({
+  current,
+  onNavigate,
+  onLogout,
+  fetchSnippetsByTag,
+  fetchExploreSnippets,
+}) {
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -166,7 +183,9 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag, fetchExplor
         const data = await fetchSnippetsByTag(lang);
         if (data && Array.isArray(data)) allResults.push(...data);
       }
-      const uniqueResults = Array.from(new Map(allResults.map((s) => [s._id, s])).values());
+      const uniqueResults = Array.from(
+        new Map(allResults.map((s) => [s._id, s])).values()
+      );
       onNavigate("search", uniqueResults);
     } catch (err) {
       console.error("Filter apply error:", err);
@@ -230,27 +249,26 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag, fetchExplor
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-3 lg:gap-4">
           {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  handleNavigate(item.id);
+            <button
+              key={item.id}
+              onClick={() => {
+                handleNavigate(item.id);
 
-                  // ✅ Only trigger Explore when available
-                  if (item.id === "explore") {
-                    fetchExploreSnippets?.(); // Safe optional call
-                  }
-                }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                  current === item.id
-                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
-                    : "text-gray-300 hover:text-white hover:bg-gray-800/70 hover:scale-105"
-                }`}
-              >
-                {item.icon}
-                <span className="hidden sm:inline">{item.label}</span>
-              </button>
-            ))}
-
+                // ✅ Only trigger Explore when available
+                if (item.id === "explore") {
+                  fetchExploreSnippets?.(); // Safe optional call
+                }
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                current === item.id
+                  ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
+                  : "text-gray-300 hover:text-white hover:bg-gray-800/70 hover:scale-105"
+              }`}
+            >
+              {item.icon}
+              <span className="hidden sm:inline">{item.label}</span>
+            </button>
+          ))}
 
           {isAdmin && (
             <Link
@@ -263,7 +281,10 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag, fetchExplor
 
           {/* Search */}
           <div className="relative ml-3">
-            <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-2.5 text-gray-400"
+            />
             <input
               type="text"
               placeholder="Search snippets by title, author, or language..."
@@ -309,7 +330,10 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag, fetchExplor
       {showSearch && (
         <div className="md:hidden px-4 pb-3 animate-fade-in">
           <div className="relative">
-            <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
+            <Search
+              size={18}
+              className="absolute left-3 top-2.5 text-gray-400"
+            />
             <input
               type="text"
               placeholder="Search snippets..."
@@ -329,27 +353,26 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag, fetchExplor
       {menuOpen && (
         <div className="md:hidden bg-gray-900 border-t border-gray-800 animate-slide-down">
           {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  handleNavigate(item.id);
+            <button
+              key={item.id}
+              onClick={() => {
+                handleNavigate(item.id);
 
-                  // ✅ Only trigger Explore data load when "Explore" is clicked
-                  if (item.id === "explore") {
-                    fetchExploreSnippets?.(); // safe optional call
-                  }
-                }}
-                className={`w-full flex items-center gap-2 px-6 py-3 text-sm font-medium text-left transition-all duration-300 ${
-                  current === item.id
-                    ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 shadow-md"
-                    : "text-gray-300 hover:bg-gray-800 hover:text-white"
-                }`}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            ))}
-
+                // ✅ Only trigger Explore data load when "Explore" is clicked
+                if (item.id === "explore") {
+                  fetchExploreSnippets?.(); // safe optional call
+                }
+              }}
+              className={`w-full flex items-center gap-2 px-6 py-3 text-sm font-medium text-left transition-all duration-300 ${
+                current === item.id
+                  ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 shadow-md"
+                  : "text-gray-300 hover:bg-gray-800 hover:text-white"
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
 
           {onLogout && (
             <button
@@ -366,25 +389,43 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag, fetchExplor
       {(current === "home" || current === "search") && (
         <div className="border-t border-gray-800 bg-gray-950/80 backdrop-blur-sm">
           <div className="flex items-center overflow-x-auto gap-3 px-4 sm:px-8 py-3 scrollbar-hide">
-            <span className="text-sm text-gray-400 flex-shrink-0 font-medium">Quick filters:</span>
-            {["javascript", "python", "java", "php", "typescript", "go", "ruby", "csharp"].map(
-              (lang, i) => (
-                <button
-                  key={lang}
-                  onClick={() => handleFilterClick(lang)}
-                  className={`flex-shrink-0 px-4 py-1.5 text-xs rounded-full font-semibold transition-all duration-300 ${
-                    activeFilters.includes(lang)
-                      ? `bg-gradient-to-r ${filterColors[i % filterColors.length]} text-white shadow-md scale-105`
-                      : "bg-gray-800/70 border border-gray-700 text-gray-300 hover:bg-blue-600/30 hover:text-blue-300"
-                  }`}
-                >
-                  {lang}
-                </button>
-              )
+            <span className="text-sm text-gray-400 flex-shrink-0 font-medium">
+              Quick filters:
+            </span>
+            {[
+              "javascript",
+              "python",
+              "java",
+              "php",
+              "typescript",
+              "go",
+              "ruby",
+              "csharp",
+            ].map((lang, i) => (
+              <button
+                key={lang}
+                onClick={() => handleFilterClick(lang)}
+                className={`flex-shrink-0 px-4 py-1.5 text-xs rounded-full font-semibold transition-all duration-300 ${
+                  activeFilters.includes(lang)
+                    ? `bg-gradient-to-r ${
+                        filterColors[i % filterColors.length]
+                      } text-white shadow-md scale-105`
+                    : "bg-gray-800/70 border border-gray-700 text-gray-300 hover:bg-blue-600/30 hover:text-blue-300"
+                }`}
+              >
+                {lang}
+              </button>
+            ))}
+            {loading && (
+              <span className="text-sm text-gray-400 ml-2 animate-pulse">
+                Loading…
+              </span>
             )}
-            {loading && <span className="text-sm text-gray-400 ml-2 animate-pulse">Loading…</span>}
             {activeFilters.length > 0 && (
-              <button onClick={clearAllFilters} className="ml-auto text-xs text-red-400 hover:underline">
+              <button
+                onClick={clearAllFilters}
+                className="ml-auto text-xs text-red-400 hover:underline"
+              >
                 Clear all
               </button>
             )}
@@ -414,9 +455,6 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag, fetchExplor
     </header>
   );
 }
-
-
-
 
 function SnippetCard({ snippet, onSelect, onTagClick }) {
   return (
@@ -1429,270 +1467,428 @@ function AddSnippetForm({ onAdd }) {
   );
 }
 
+// ------------------------------------------------------------------
+// Profile Page
+// ------------------------------------------------------------------
 function Profile() {
   const [user, setUser] = useState(null);
   const [githubConnected, setGithubConnected] = useState(false);
   const [githubProfile, setGithubProfile] = useState(null);
-  const [githubToken, setGithubToken] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [totalSnippets, setTotalSnippets] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [editedProfile, setEditedProfile] = useState({});
+  const [techStack, setTechStack] = useState([]);
+  const [recentSnippets, setRecentSnippets] = useState([]);
+  const [insights, setInsights] = useState({
+    totalSnippets: 0,
+    totalLikes: 0,
+    totalViews: 0,
+  });
+  const [contributions, setContributions] = useState([]);
+  const [activity, setActivity] = useState([]);
+  const [error, setError] = useState(null);
 
-  // ✅ Fetch user profile
-  const fetchUserProfile = async () => {
+  // ✅ Combined Dashboard Fetch
+  const fetchDashboardData = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
-
-    const res = await fetch(`${API}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (res.ok) setUser(data.user);
-  };
-
-  // ✅ GitHub status
-  const fetchGitHubStatus = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      setChecking(true);
-      const res = await fetch(`${API}/api/user/github-token`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-
-      if (data.connected && !data.expired) {
-        setGithubConnected(true);
-        setGithubProfile({
-          login: data.githubUsername,
-          email: data.githubEmail,
-          avatar_url: data.githubAvatar,
-          html_url: `https://github.com/${data.githubUsername}`,
-        });
-      } else {
-        setGithubConnected(false);
-        setGithubProfile(null);
-      }
-    } catch (err) {
-      console.error("GitHub status fetch error:", err);
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  // ✅ Snippet count
-  const fetchSnippetCount = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    const res = await fetch(`${API}/api/snippets/mine`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setTotalSnippets(data.length);
-    }
-  };
-
-  useEffect(() => {
-    fetchUserProfile();
-    fetchGitHubStatus();
-    fetchSnippetCount();
-  }, []);
-
-  // ✅ GitHub Token Verification
-  const verifyGitHubToken = async (token) => {
-    try {
-      const res = await fetch("https://api.github.com/user", {
-        headers: { Authorization: `token ${token}` },
-      });
-      if (!res.ok) return null;
-      return await res.json();
-    } catch {
-      return null;
-    }
-  };
-
-  const handleSaveGithubToken = async () => {
-    if (!githubToken.trim()) return alert("Please enter your GitHub token");
 
     try {
       setLoading(true);
-      const appToken = localStorage.getItem("token");
-      const profile = await verifyGitHubToken(githubToken);
-      if (!profile) return alert("❌ Invalid GitHub token");
 
-      const res = await fetch(`${API}/api/user/github-token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${appToken}`,
-        },
-        body: JSON.stringify({ token: githubToken }),
-      });
+      // Run all API requests in parallel for better performance
+      const [profileRes, snippetsRes, activityRes] = await Promise.all([
+        fetch(`${API}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API}/api/snippets/mine`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API}/api/activity/mine`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
-      if (!res.ok) throw new Error("Failed to save GitHub token");
+      const [profileData, snippetsData, activityData] = await Promise.all([
+        profileRes.json(),
+        snippetsRes.json(),
+        activityRes.json(),
+      ]);
 
-      setGithubConnected(true);
-      setGithubProfile(profile);
-      setGithubToken("");
-      alert(`✅ Connected as ${profile.login}`);
+      // 👤 Profile
+      if (profileRes.ok) {
+        setUser(profileData.user);
+        setEditedProfile(profileData.user);
+        setTechStack(profileData.user.techStack ? profileData.user.techStack.split(",") : []);
+      }
+
+      // 🧩 Snippets
+      if (snippetsRes.ok) {
+        setRecentSnippets(snippetsData.slice(0, 5));
+        const totalLikes = snippetsData.reduce((sum, s) => sum + (s.likes?.length || 0), 0);
+        const totalViews = snippetsData.reduce((sum, s) => sum + (s.views || 0), 0);
+        setInsights({
+          totalSnippets: snippetsData.length,
+          totalLikes,
+          totalViews,
+        });
+
+        // 🟩 Contributions (30-day heatmap)
+        const now = new Date();
+        const days = Array.from({ length: 30 }, (_, i) => {
+          const d = new Date(now);
+          d.setDate(now.getDate() - i);
+          return { date: d.toISOString().split("T")[0], count: 0 };
+        });
+        snippetsData.forEach((snip) => {
+          const created = snip.createdAt?.split("T")[0];
+          const found = days.find((d) => d.date === created);
+          if (found) found.count++;
+        });
+        setContributions(days.reverse());
+      }
+
+      // 🕓 Activity
+      if (activityRes.ok) setActivity(activityData);
+      else setActivity([]);
+
     } catch (err) {
-      console.error("GitHub connect error:", err);
-      alert("❌ Connection failed");
+      console.error("Dashboard fetch error:", err);
+      setError("Failed to load profile data.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDisconnectGithub = async () => {
-    if (!window.confirm("Disconnect GitHub?")) return;
+  // ✅ GitHub Status
+  const fetchGitHubStatus = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
     try {
-      const token = localStorage.getItem("token");
-      await fetch(`${API}/api/user/github-token`, {
-        method: "DELETE",
+      const res = await fetch(`${API}/api/user/github-token`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setGithubConnected(false);
-      setGithubProfile(null);
-      alert("🔌 GitHub disconnected");
+      const data = await res.json();
+      if (data.connected && !data.expired) {
+        setGithubConnected(true);
+        setGithubProfile({
+          login: data.githubUsername,
+          avatar_url: data.githubAvatar,
+          html_url: `https://github.com/${data.githubUsername}`,
+        });
+      }
     } catch (err) {
-      console.error("Disconnect error:", err);
-      alert("❌ Failed to disconnect GitHub");
+      console.error("GitHub status fetch error:", err);
     }
   };
 
-  if (checking) {
+  useEffect(() => {
+    fetchDashboardData();
+    fetchGitHubStatus();
+  }, []);
+
+  // ✅ Profile image
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPreviewImage(URL.createObjectURL(file));
+      setEditedProfile({ ...editedProfile, avatar: file });
+    }
+  };
+
+  // ✅ Tech stack
+  const addTech = (e) => {
+    if (e.key === "Enter" && e.target.value.trim()) {
+      setTechStack([...techStack, e.target.value.trim()]);
+      e.target.value = "";
+    }
+  };
+  const removeTech = (tech) => setTechStack(techStack.filter((t) => t !== tech));
+
+  // ✅ Save profile
+  const handleSaveProfile = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      setSaving(true);
+      const formData = new FormData();
+      Object.entries(editedProfile).forEach(([k, v]) => formData.append(k, v));
+      formData.append("techStack", techStack.join(","));
+      const res = await fetch(`${API}/api/user/update`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Update failed");
+      const updated = await res.json();
+      setUser(updated.user);
+      setIsEditing(false);
+      alert("✅ Profile updated successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 🌀 Loading & Error UI
+  if (loading)
     return (
-      <div className="flex justify-center items-center min-h-[300px] text-gray-400 animate-pulse">
-        Checking your profile...
+      <div className="flex justify-center items-center min-h-screen text-gray-400 animate-pulse">
+        Loading profile...
       </div>
     );
-  }
+
+  if (error)
+    return (
+      <div className="flex justify-center items-center min-h-screen text-red-400">
+        {error}
+      </div>
+    );
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-8 py-12">
-      {/* Header */}
-      <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl p-8 border border-gray-800 shadow-2xl">
-        <div className="flex flex-col sm:flex-row items-center gap-8">
-          <div className="relative">
-            <div className="w-28 h-28 rounded-full overflow-hidden ring-4 ring-blue-600 shadow-lg">
-              {githubProfile?.avatar_url ? (
-                <img
-                  src={githubProfile.avatar_url}
-                  alt="GitHub avatar"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <FaUser className="text-white text-5xl flex items-center justify-center h-full w-full bg-gray-700" />
+    <div className="min-h-screen bg-[#0d1117] text-gray-200 py-10 px-6">
+      <div className="max-w-6xl mx-auto grid lg:grid-cols-3 gap-10">
+        {/* LEFT SIDEBAR */}
+        <div className="space-y-6">
+          {/* Profile Info */}
+          <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800 text-center">
+            <div className="relative inline-block">
+              <img
+                src={
+                  previewImage ||
+                  githubProfile?.avatar_url ||
+                  user?.avatar ||
+                  "https://avatars.githubusercontent.com/u/9919?v=4"
+                }
+                className="w-36 h-36 rounded-full border-4 border-blue-500 mx-auto"
+                alt="Profile"
+              />
+              {isEditing && (
+                <label className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 p-2 rounded-full cursor-pointer">
+                  <FaUpload size={14} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
               )}
             </div>
-            <div className="absolute bottom-2 right-2 w-4 h-4 bg-green-500 border-2 border-gray-900 rounded-full animate-pulse"></div>
+
+            <h2 className="text-2xl font-bold mt-4">{user?.username}</h2>
+            <p className="text-gray-400 text-sm">{user?.email}</p>
+            <p className="text-gray-400 text-sm italic mt-2">
+              {user?.bio || "No bio yet"}
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              🕓 Joined {new Date(user?.createdAt).toLocaleDateString()}
+            </p>
+
+            {isEditing ? (
+              <div className="flex justify-center gap-3 mt-4">
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm flex items-center gap-2 disabled:opacity-50"
+                >
+                  <FaSave /> {saving ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="bg-gray-700 hover:bg-gray-800 px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+                >
+                  <FaTimes /> Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="text-blue-400 mt-3 text-sm hover:underline flex justify-center items-center gap-2"
+              >
+                <FaEdit /> Edit Profile
+              </button>
+            )}
           </div>
 
-          <div className="text-center sm:text-left">
-            <h2 className="text-3xl font-bold text-white tracking-tight">
-              {user?.username || "Anonymous User"}
-            </h2>
-            <p className="text-gray-400 text-sm">{user?.email || "No email"}</p>
-            <div className="flex items-center justify-center sm:justify-start gap-2 text-gray-500 mt-2 text-sm">
-              <FaCalendarAlt className="text-blue-400" />
-              <span>
-                Joined{" "}
-                {user?.createdAt
-                  ? new Date(user.createdAt).toLocaleDateString()
-                  : "N/A"}
-              </span>
+          {/* Tech Stack */}
+          <div className="bg-[#161b22] p-5 rounded-2xl border border-gray-800">
+            <h3 className="text-lg font-semibold text-blue-400 mb-3">💻 Tech Stack</h3>
+            {isEditing ? (
+              <>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {techStack.map((tech) => (
+                    <span
+                      key={tech}
+                      className="bg-blue-600/30 border border-blue-600 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                    >
+                      {tech}
+                      <button
+                        onClick={() => removeTech(tech)}
+                        className="text-red-400"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  onKeyDown={addTech}
+                  placeholder="Type & press Enter to add"
+                  className="w-full bg-[#0d1117] border border-gray-700 rounded-lg px-4 py-2 text-sm"
+                />
+              </>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {techStack.length ? (
+                  techStack.map((tech) => (
+                    <span
+                      key={tech}
+                      className="bg-gray-900 border border-gray-700 px-3 py-1 rounded-full text-sm"
+                    >
+                      {tech}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-gray-400 text-sm">No tech stack added</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* MAIN SECTION */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Profile Insights */}
+          <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800">
+            <h3 className="text-xl font-semibold text-yellow-400 mb-4">
+              📈 Profile Insights
+            </h3>
+            <div className="grid grid-cols-3 gap-6 text-center">
+              <div>
+                <FaCodeBranch className="text-purple-400 text-2xl mx-auto mb-2" />
+                <p className="text-gray-400 text-sm">Snippets</p>
+                <p className="text-2xl font-bold">{insights.totalSnippets}</p>
+              </div>
+              <div>
+                <FaHeart className="text-pink-400 text-2xl mx-auto mb-2" />
+                <p className="text-gray-400 text-sm">Likes</p>
+                <p className="text-2xl font-bold">{insights.totalLikes}</p>
+              </div>
+              <div>
+                <FaEye className="text-blue-400 text-2xl mx-auto mb-2" />
+                <p className="text-gray-400 text-sm">Views</p>
+                <p className="text-2xl font-bold">{insights.totalViews}</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-10 text-center">
-          <div className="p-4 bg-gray-800/70 rounded-2xl border border-gray-700">
-            <FaCode className="text-purple-400 mx-auto text-2xl mb-2" />
-            <h3 className="font-semibold">Snippets</h3>
-            <p className="text-2xl font-bold text-white">{totalSnippets}</p>
-          </div>
-          <div className="p-4 bg-gray-800/70 rounded-2xl border border-gray-700">
-            <FaGithub className="text-gray-100 mx-auto text-2xl mb-2" />
-            <h3 className="font-semibold">GitHub</h3>
-            <p
-              className={`text-lg font-semibold ${
-                githubConnected ? "text-green-400" : "text-gray-400"
-              }`}
-            >
-              {githubConnected ? "Connected" : "Not Connected"}
-            </p>
-          </div>
-          <div className="p-4 bg-gray-800/70 rounded-2xl border border-gray-700">
-            <FaUser className="text-blue-400 mx-auto text-2xl mb-2" />
-            <h3 className="font-semibold">Account</h3>
-            <p className="text-sm text-gray-400">Active</p>
-          </div>
-        </div>
-      </div>
-
-      {/* GitHub Integration */}
-      <div className="mt-10 bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-700">
-        <div className="flex items-center gap-3 mb-4">
-          <FaGithub className="text-white text-2xl" />
-          <h3 className="text-lg font-semibold text-white">
-            GitHub Integration
-          </h3>
-        </div>
-
-        {githubConnected && githubProfile ? (
-          <div className="space-y-3">
-            <p className="text-green-400 flex items-center gap-2">
-              ✅ Connected as{" "}
-              <a
-                href={githubProfile.html_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:underline flex items-center gap-1"
-              >
-                {githubProfile.login} <FaExternalLinkAlt size={10} />
-              </a>
-            </p>
-            {githubProfile.email && (
-              <p className="text-gray-400 text-sm">
-                📧 {githubProfile.email}
-              </p>
+          {/* Recent Snippets */}
+          <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800">
+            <h3 className="text-xl font-semibold text-green-400 mb-4">
+              🧩 Recent Snippets
+            </h3>
+            {recentSnippets.length ? (
+              <div className="space-y-3">
+                {recentSnippets.map((s) => (
+                  <div
+                    key={s._id}
+                    className="p-4 rounded-lg bg-[#0d1117]/60 border border-gray-800 hover:bg-[#0d1117]/90 transition"
+                  >
+                    <h4 className="text-white font-semibold">{s.title}</h4>
+                    <p className="text-gray-400 text-sm">
+                      {s.language || "Unknown"} • {s.likes?.length || 0} Likes •{" "}
+                      {s.views || 0} Views
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-400 text-sm">No snippets yet</p>
             )}
-            <button
-              onClick={handleDisconnectGithub}
-              className="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-lg text-sm text-white transition font-medium"
-            >
-              Disconnect
-            </button>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-gray-400 text-sm">
-              Connect your GitHub account to share snippets and sync activity.
-            </p>
-            <input
-              type="password"
-              placeholder="Enter GitHub Personal Access Token"
-              value={githubToken}
-              onChange={(e) => setGithubToken(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700/70 text-white rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-            <button
-              onClick={handleSaveGithubToken}
-              disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg text-sm text-white disabled:opacity-60 transition font-medium"
-            >
-              {loading ? "Connecting..." : "Connect GitHub"}
-            </button>
+
+          {/* Contribution Grid */}
+          <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800">
+            <h3 className="text-xl font-semibold text-orange-400 mb-3">
+              🟩 Contribution Activity (30 Days)
+            </h3>
+            <div className="grid grid-cols-15 gap-[3px] overflow-x-auto">
+              {contributions.map((d, i) => (
+                <div
+                  key={i}
+                  title={`${d.date}: ${d.count} snippet(s)`}
+                  className={`w-4 h-4 rounded-sm hover:scale-110 transition-transform ${
+                    d.count === 0
+                      ? "bg-gray-800"
+                      : d.count < 2
+                      ? "bg-green-900"
+                      : d.count < 4
+                      ? "bg-green-600"
+                      : "bg-green-400"
+                  }`}
+                ></div>
+              ))}
+            </div>
           </div>
-        )}
+
+          {/* Recent Activity */}
+          <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800">
+            <h3 className="text-xl font-semibold text-cyan-400 mb-4">
+              🕓 Recent Activity
+            </h3>
+            {activity.length ? (
+              <ul className="space-y-3">
+                {activity.map((a) => (
+                  <li
+                    key={a._id}
+                    className="flex items-start gap-3 p-3 bg-[#0d1117]/60 rounded-lg border border-gray-800 hover:bg-[#0d1117]/80 transition"
+                  >
+                    {a.type === "created" ? (
+                      <FaCode className="text-green-400 mt-1" />
+                    ) : a.type === "deleted" ? (
+                      <FaTrashAlt className="text-red-400 mt-1" />
+                    ) : (
+                      <FaHeart className="text-pink-400 mt-1" />
+                    )}
+                    <div>
+                      <p className="text-gray-300 text-sm">
+                        <span className="font-semibold text-white">
+                          {user?.username}
+                        </span>{" "}
+                        {a.type === "created"
+                          ? "created a new snippet"
+                          : a.type === "deleted"
+                          ? "deleted a snippet"
+                          : "liked a snippet"}{" "}
+                        <span className="text-blue-400">"{a.snippetTitle}"</span>
+                      </p>
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <FaClock />{" "}
+                        {new Date(a.createdAt).toLocaleDateString("en-US", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-400 text-sm">No recent activity yet.</p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+
 
 
 function Footer() {
@@ -2211,16 +2407,15 @@ export default function CodeSharingPage({ onLogout }) {
   return (
     <div className="min-h-screen w-full bg-gray-950 text-gray-200">
       <Header
-          current={page}
-          onNavigate={handleNavigate}
-          onLogout={onLogout}
-          fetchSnippetsByTag={fetchSnippetsByTag}
-          fetchExploreSnippets={fetchExploreSnippets} // ✅ add this line
-          clearFilter={clearFilter}
-          loading={loading}
-          currentFilter={currentFilter}
-        />
-
+        current={page}
+        onNavigate={handleNavigate}
+        onLogout={onLogout}
+        fetchSnippetsByTag={fetchSnippetsByTag}
+        fetchExploreSnippets={fetchExploreSnippets} // ✅ add this line
+        clearFilter={clearFilter}
+        loading={loading}
+        currentFilter={currentFilter}
+      />
 
       <main className="w-full px-6 py-10 space-y-12">
         {page === "home" && (
@@ -2299,75 +2494,76 @@ export default function CodeSharingPage({ onLogout }) {
           </div>
         )}
 
-{page === "explore" && (
-  <div className="w-full min-h-screen bg-[#0b0c10] text-gray-200 px-4 sm:px-6 md:px-10 lg:px-16 py-10">
-    {loadingExplore ? (
-      <div className="flex justify-center items-center h-64 text-gray-400 text-lg animate-pulse">
-        Loading explore...
-      </div>
-    ) : exploreData && exploreData.trending ? (
-      <div className="max-w-[1300px] mx-auto flex flex-col gap-20">
-        {/* 🔥 Trending Snippets */}
-        <section className="space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-blue-400 flex items-center gap-2">
-              🔥 Trending Snippets
-            </h2>
-            <span className="text-gray-500 text-sm sm:text-base mt-2 sm:mt-0">
-              Most liked snippets this week
-            </span>
+        {page === "explore" && (
+          <div className="w-full min-h-screen bg-[#0b0c10] text-gray-200 px-4 sm:px-6 md:px-10 lg:px-16 py-10">
+            {loadingExplore ? (
+              <div className="flex justify-center items-center h-64 text-gray-400 text-lg animate-pulse">
+                Loading explore...
+              </div>
+            ) : exploreData && exploreData.trending ? (
+              <div className="max-w-[1300px] mx-auto flex flex-col gap-20">
+                {/* 🔥 Trending Snippets */}
+                <section className="space-y-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-blue-400 flex items-center gap-2">
+                      🔥 Trending Snippets
+                    </h2>
+                    <span className="text-gray-500 text-sm sm:text-base mt-2 sm:mt-0">
+                      Most liked snippets this week
+                    </span>
+                  </div>
+
+                  <SnippetGrid
+                    snippets={exploreData.trending}
+                    onSelect={fetchSnippetById}
+                  />
+                </section>
+
+                {/* 🆕 Recently Added */}
+                <section className="space-y-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-green-400 flex items-center gap-2">
+                      🆕 Recently Added
+                    </h2>
+                    <span className="text-gray-500 text-sm sm:text-base mt-2 sm:mt-0">
+                      Fresh snippets added by the community
+                    </span>
+                  </div>
+
+                  <SnippetGrid
+                    snippets={exploreData.recent}
+                    onSelect={fetchSnippetById}
+                  />
+                </section>
+
+                {/* 💻 By Language */}
+                {Object.entries(exploreData.byLanguage || {}).map(
+                  ([lang, snippets]) => (
+                    <section key={lang} className="space-y-8">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                        <h2 className="text-2xl md:text-3xl font-extrabold text-purple-400 capitalize flex items-center gap-2">
+                          💻 {lang} Snippets
+                        </h2>
+                        <span className="text-gray-500 text-sm sm:text-base mt-2 sm:mt-0">
+                          Curated in {lang}
+                        </span>
+                      </div>
+
+                      <SnippetGrid
+                        snippets={snippets}
+                        onSelect={fetchSnippetById}
+                      />
+                    </section>
+                  )
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center text-lg">
+                ⚠️ Failed to load explore data.
+              </p>
+            )}
           </div>
-
-          <SnippetGrid snippets={exploreData.trending} onSelect={fetchSnippetById} />
-        </section>
-
-        {/* 🆕 Recently Added */}
-        <section className="space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-green-400 flex items-center gap-2">
-              🆕 Recently Added
-            </h2>
-            <span className="text-gray-500 text-sm sm:text-base mt-2 sm:mt-0">
-              Fresh snippets added by the community
-            </span>
-          </div>
-
-          <SnippetGrid snippets={exploreData.recent} onSelect={fetchSnippetById} />
-        </section>
-
-        {/* 💻 By Language */}
-        {Object.entries(exploreData.byLanguage || {}).map(([lang, snippets]) => (
-          <section key={lang} className="space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-2xl md:text-3xl font-extrabold text-purple-400 capitalize flex items-center gap-2">
-                💻 {lang} Snippets
-              </h2>
-              <span className="text-gray-500 text-sm sm:text-base mt-2 sm:mt-0">
-                Curated in {lang}
-              </span>
-            </div>
-
-            <SnippetGrid snippets={snippets} onSelect={fetchSnippetById} />
-          </section>
-        ))}
-      </div>
-    ) : (
-      <p className="text-gray-500 text-center text-lg">
-        ⚠️ Failed to load explore data.
-      </p>
-    )}
-  </div>
-)}
-
-
-
-
-
-
-
-
-
-
+        )}
 
         {page === "add" && <AddSnippetForm onAdd={handleAddSnippet} />}
 
