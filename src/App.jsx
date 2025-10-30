@@ -196,7 +196,8 @@ export default function App() {
         <Route path="/faq" element={<FAQ />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
-     
+        
+
       </Routes>
     </Router>
   );

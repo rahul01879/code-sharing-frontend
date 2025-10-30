@@ -1,5 +1,5 @@
 // src/pages/CodeSharingPage.jsx
-import { useState, useEffect, useRef, useCallback} from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import Prism from "prismjs";
@@ -20,14 +20,41 @@ import "prismjs/components/prism-c";
 import "prismjs/components/prism-cpp";
 import "prismjs/components/prism-java";
 import "prismjs/components/prism-ruby";
-import { FaUser, FaEnvelope, FaCode, FaGithub, FaCalendarAlt, FaExternalLinkAlt } from "react-icons/fa";
+import {
+  FaUser,
+  FaEnvelope,
+  FaCode,
+  FaGithub,
+  FaCalendarAlt,
+  FaExternalLinkAlt,
+} from "react-icons/fa";
 
-import { Home, PlusSquare, FileText, User, LogOut, Shield, FolderOpen,
-         Edit2, Trash2, ArrowLeft, Github, Twitter, Linkedin, Mail, Code2, Menu,
-          X , Search, Folder,  Eye, Heart, MessageSquare, MessageCircle } from "lucide-react";
-
-
-
+import {
+  Home,
+  PlusSquare,
+  FileText,
+  User,
+  LogOut,
+  Shield,
+  FolderOpen,
+  Edit2,
+  Trash2,
+  ArrowLeft,
+  Github,
+  Twitter,
+  Linkedin,
+  Mail,
+  Code2,
+  Menu,
+  X,
+  Search,
+  Folder,
+  Eye,
+  Heart,
+  MessageSquare,
+  MessageCircle,
+  Compass,
+} from "lucide-react";
 
 import "../App.css";
 import AdminLoginPage from "./AdminLoginPage";
@@ -38,23 +65,36 @@ const API = import.meta.env.VITE_API_BASE_URL;
 // ---------------- helpers ----------------
 const getBadgeColor = (lang) => {
   switch ((lang || "").toLowerCase()) {
-    case "javascript": return "bg-yellow-500/20 text-yellow-300";
-    case "css": return "bg-blue-500/20 text-blue-300";
+    case "javascript":
+      return "bg-yellow-500/20 text-yellow-300";
+    case "css":
+      return "bg-blue-500/20 text-blue-300";
     case "html":
-    case "markup": return "bg-orange-500/20 text-orange-300";
-    case "php": return "bg-purple-500/20 text-purple-300";
-    case "python": return "bg-green-500/20 text-green-300";
+    case "markup":
+      return "bg-orange-500/20 text-orange-300";
+    case "php":
+      return "bg-purple-500/20 text-purple-300";
+    case "python":
+      return "bg-green-500/20 text-green-300";
     case "c":
-    case "cpp": return "bg-red-500/20 text-red-300";
-    case "java": return "bg-amber-500/20 text-amber-300";
-    case "ruby": return "bg-pink-500/20 text-pink-300";
-    default: return "bg-gray-600/30 text-gray-300";
+    case "cpp":
+      return "bg-red-500/20 text-red-300";
+    case "java":
+      return "bg-amber-500/20 text-amber-300";
+    case "ruby":
+      return "bg-pink-500/20 text-pink-300";
+    default:
+      return "bg-gray-600/30 text-gray-300";
   }
 };
 
 const formatDate = (d) => {
   if (!d) return "—";
-  try { return new Date(d).toLocaleDateString(); } catch { return "—"; }
+  try {
+    return new Date(d).toLocaleDateString();
+  } catch {
+    return "—";
+  }
 };
 
 function timeAgo(date) {
@@ -89,7 +129,8 @@ function debounce(func, delay) {
   };
 }
 
-function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
+
+function Header({ current, onNavigate, onLogout, fetchSnippetsByTag, fetchExploreSnippets }) {
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -103,6 +144,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     { id: "my-snippets", label: "My Snippets", icon: <FileText size={18} /> },
     { id: "collections", label: "Collections", icon: <Folder size={18} /> },
     { id: "profile", label: "Profile", icon: <User size={18} /> },
+    { id: "explore", label: "Explore", icon: <Compass size={18} /> },
   ];
 
   const handleNavigate = (id, value) => {
@@ -111,31 +153,23 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     setShowSearch(false);
   };
 
-  // ✅ Combine filter results
+  // ✅ Combine filter results dynamically
   const applyFilters = async (filters) => {
     if (!filters || filters.length === 0) {
       handleNavigate("home");
       return;
     }
-
     setLoading(true);
     try {
       const allResults = [];
-      // fetchSnippetsByTag should return an array of snippets for the given tag
       for (const lang of filters) {
-        try {
-          const data = await fetchSnippetsByTag(lang);
-          if (data && Array.isArray(data)) allResults.push(...data);
-        } catch (err) {
-          console.error("Error fetching tag", lang, err);
-        }
+        const data = await fetchSnippetsByTag(lang);
+        if (data && Array.isArray(data)) allResults.push(...data);
       }
-
-      // remove duplicates by _id
-      const uniqueResults = Array.from(
-        new Map(allResults.map((s) => [s._id, s])).values()
-      );
+      const uniqueResults = Array.from(new Map(allResults.map((s) => [s._id, s])).values());
       onNavigate("search", uniqueResults);
+    } catch (err) {
+      console.error("Filter apply error:", err);
     } finally {
       setLoading(false);
     }
@@ -160,21 +194,18 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     handleNavigate("home");
   };
 
-  // ✅ Debounced search handler: pass query string to parent
-  // (parent / top-level will handle making the backend request)
+  // ✅ Debounced search (for titles, languages, author, etc.)
   const handleSearch = useCallback(
     debounce((query) => {
-      if (!query || !query.trim()) {
-        onNavigate("home"); // 🏠 go back home if empty
+      if (!query.trim()) {
+        onNavigate("home");
         return;
       }
-      // pass the raw query string to parent; parent will call the API and set results
-      onNavigate("search", query);
+      onNavigate("search", query); // parent handles fetching
     }, 400),
     [onNavigate]
   );
 
-  // Modern animation styles
   const filterColors = [
     "from-blue-500 to-cyan-500",
     "from-purple-500 to-pink-500",
@@ -199,19 +230,27 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-3 lg:gap-4">
           {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleNavigate(item.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                current === item.id
-                  ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
-                  : "text-gray-300 hover:text-white hover:bg-gray-800/70"
-              }`}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
+              <button
+                key={item.id}
+                onClick={() => {
+                  handleNavigate(item.id);
+
+                  // ✅ Only trigger Explore when available
+                  if (item.id === "explore") {
+                    fetchExploreSnippets?.(); // Safe optional call
+                  }
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                  current === item.id
+                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
+                    : "text-gray-300 hover:text-white hover:bg-gray-800/70 hover:scale-105"
+                }`}
+              >
+                {item.icon}
+                <span className="hidden sm:inline">{item.label}</span>
+              </button>
+            ))}
+
 
           {isAdmin && (
             <Link
@@ -227,7 +266,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
             <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search snippets..."
+              placeholder="Search snippets by title, author, or language..."
               className="pl-9 pr-4 py-2 rounded-full bg-gray-800/80 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 lg:w-64 transition-all"
               value={search}
               onChange={(e) => {
@@ -266,7 +305,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
         </div>
       </div>
 
-      {/* --- Mobile Search Bar --- */}
+      {/* --- Mobile Search --- */}
       {showSearch && (
         <div className="md:hidden px-4 pb-3 animate-fade-in">
           <div className="relative">
@@ -279,8 +318,7 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
               onChange={(e) => {
                 const value = e.target.value;
                 setSearch(value);
-                // Keep mobile consistent with desktop: pass query string to parent
-                handleNavigate("search", value);
+                handleSearch(value);
               }}
             />
           </div>
@@ -291,19 +329,28 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
       {menuOpen && (
         <div className="md:hidden bg-gray-900 border-t border-gray-800 animate-slide-down">
           {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleNavigate(item.id)}
-              className={`w-full flex items-center gap-2 px-6 py-3 text-sm font-medium text-left transition ${
-                current === item.id
-                  ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300"
-                  : "text-gray-300 hover:bg-gray-800"
-              }`}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
+              <button
+                key={item.id}
+                onClick={() => {
+                  handleNavigate(item.id);
+
+                  // ✅ Only trigger Explore data load when "Explore" is clicked
+                  if (item.id === "explore") {
+                    fetchExploreSnippets?.(); // safe optional call
+                  }
+                }}
+                className={`w-full flex items-center gap-2 px-6 py-3 text-sm font-medium text-left transition-all duration-300 ${
+                  current === item.id
+                    ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 shadow-md"
+                    : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+
+
           {onLogout && (
             <button
               onClick={onLogout}
@@ -319,37 +366,23 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
       {(current === "home" || current === "search") && (
         <div className="border-t border-gray-800 bg-gray-950/80 backdrop-blur-sm">
           <div className="flex items-center overflow-x-auto gap-3 px-4 sm:px-8 py-3 scrollbar-hide">
-            <span className="text-sm text-gray-400 flex-shrink-0 font-medium">
-              Quick filters:
-            </span>
-
-            {[
-              "javascript",
-              "python",
-              "java",
-              "php",
-              "typescript",
-              "go",
-              "ruby",
-              "csharp",
-            ].map((lang, i) => (
-              <button
-                key={lang}
-                onClick={() => handleFilterClick(lang)}
-                className={`flex-shrink-0 px-4 py-1.5 text-xs rounded-full font-semibold transition-all duration-300 ${
-                  activeFilters.includes(lang)
-                    ? `bg-gradient-to-r ${filterColors[i % filterColors.length]} text-white shadow-md scale-105`
-                    : "bg-gray-800/70 border border-gray-700 text-gray-300 hover:bg-blue-600/30 hover:text-blue-300"
-                }`}
-              >
-                {lang}
-              </button>
-            ))}
-
-            {loading && (
-              <span className="text-sm text-gray-400 ml-2 animate-pulse">Loading…</span>
+            <span className="text-sm text-gray-400 flex-shrink-0 font-medium">Quick filters:</span>
+            {["javascript", "python", "java", "php", "typescript", "go", "ruby", "csharp"].map(
+              (lang, i) => (
+                <button
+                  key={lang}
+                  onClick={() => handleFilterClick(lang)}
+                  className={`flex-shrink-0 px-4 py-1.5 text-xs rounded-full font-semibold transition-all duration-300 ${
+                    activeFilters.includes(lang)
+                      ? `bg-gradient-to-r ${filterColors[i % filterColors.length]} text-white shadow-md scale-105`
+                      : "bg-gray-800/70 border border-gray-700 text-gray-300 hover:bg-blue-600/30 hover:text-blue-300"
+                  }`}
+                >
+                  {lang}
+                </button>
+              )
             )}
-
+            {loading && <span className="text-sm text-gray-400 ml-2 animate-pulse">Loading…</span>}
             {activeFilters.length > 0 && (
               <button onClick={clearAllFilters} className="ml-auto text-xs text-red-400 hover:underline">
                 Clear all
@@ -381,14 +414,6 @@ function Header({ current, onNavigate, onLogout, fetchSnippetsByTag }) {
     </header>
   );
 }
-
-
-
-
-
-
-
-
 
 
 
@@ -453,7 +478,11 @@ function SnippetCard({ snippet, onSelect, onTagClick }) {
         </div>
 
         <pre className="max-h-36 overflow-hidden text-[11px] sm:text-xs p-3 font-mono text-gray-200 leading-relaxed">
-          <code className={`language-${(snippet.language || "javascript").toLowerCase()}`}>
+          <code
+            className={`language-${(
+              snippet.language || "javascript"
+            ).toLowerCase()}`}
+          >
             {snippet.code?.length > 200
               ? snippet.code.slice(0, 200) + "..."
               : snippet.code}
@@ -496,14 +525,6 @@ function SnippetCard({ snippet, onSelect, onTagClick }) {
   );
 }
 
-
-
-
-
-
-
-
-
 // ---------------- Snippet Grid ----------------
 function SnippetGrid({ snippets, onSelect, onTagClick }) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -520,7 +541,10 @@ function SnippetGrid({ snippets, onSelect, onTagClick }) {
   // Pagination calculations
   const indexOfLastSnippet = currentPage * snippetsPerPage;
   const indexOfFirstSnippet = indexOfLastSnippet - snippetsPerPage;
-  const currentSnippets = snippets.slice(indexOfFirstSnippet, indexOfLastSnippet);
+  const currentSnippets = snippets.slice(
+    indexOfFirstSnippet,
+    indexOfLastSnippet
+  );
 
   const totalPages = Math.ceil(snippets.length / snippetsPerPage);
 
@@ -583,9 +607,6 @@ function SnippetGrid({ snippets, onSelect, onTagClick }) {
   );
 }
 
-
-
-
 // ---------------- Snippet Modal ----------------
 function SnippetModal({
   snippet,
@@ -607,57 +628,59 @@ function SnippetModal({
   const [collections, setCollections] = useState([]);
   const [newCollection, setNewCollection] = useState("");
 
-    useEffect(() => {
-  if (!snippet) return;
-  setEditData({ ...snippet });
+  useEffect(() => {
+    if (!snippet) return;
+    setEditData({ ...snippet });
 
-  // ✅ Record a view only once per user per snippet (safe version)
-  const recordView = async () => {
-    try {
-      // Read local cache safely
-      let viewedSnippets = [];
+    // ✅ Record a view only once per user per snippet (safe version)
+    const recordView = async () => {
       try {
-        viewedSnippets = JSON.parse(localStorage.getItem("viewedSnippets")) || [];
-      } catch {
-        localStorage.removeItem("viewedSnippets"); // reset if broken JSON
-        viewedSnippets = [];
+        // Read local cache safely
+        let viewedSnippets = [];
+        try {
+          viewedSnippets =
+            JSON.parse(localStorage.getItem("viewedSnippets")) || [];
+        } catch {
+          localStorage.removeItem("viewedSnippets"); // reset if broken JSON
+          viewedSnippets = [];
+        }
+
+        // Skip if already viewed
+        if (viewedSnippets.includes(snippet._id)) return;
+
+        // Send view count update
+        const res = await fetch(`${API}/api/snippets/${snippet._id}/view`, {
+          method: "POST",
+        });
+        if (!res.ok) {
+          console.warn("⚠️ View record failed:", res.status);
+          return;
+        }
+
+        // Cache locally so it’s not counted again
+        viewedSnippets.push(snippet._id);
+        localStorage.setItem("viewedSnippets", JSON.stringify(viewedSnippets));
+
+        console.log("✅ View recorded for snippet:", snippet._id);
+      } catch (err) {
+        console.error("Error recording view:", err);
       }
+    };
 
-      // Skip if already viewed
-      if (viewedSnippets.includes(snippet._id)) return;
+    recordView();
 
-      // Send view count update
-      const res = await fetch(`${API}/api/snippets/${snippet._id}/view`, { method: "POST" });
-      if (!res.ok) {
-        console.warn("⚠️ View record failed:", res.status);
-        return;
-      }
+    // Highlight code
+    const t = setTimeout(() => {
+      if (codeRef.current) Prism.highlightElement(codeRef.current);
+    }, 20);
 
-      // Cache locally so it’s not counted again
-      viewedSnippets.push(snippet._id);
-      localStorage.setItem("viewedSnippets", JSON.stringify(viewedSnippets));
-
-      console.log("✅ View recorded for snippet:", snippet._id);
-    } catch (err) {
-      console.error("Error recording view:", err);
-    }
-  };
-
-  recordView();
-
-  // Highlight code
-  const t = setTimeout(() => {
-    if (codeRef.current) Prism.highlightElement(codeRef.current);
-  }, 20);
-
-  // Prevent background scrolling
-  document.body.style.overflow = "hidden";
-  return () => {
-    clearTimeout(t);
-    document.body.style.overflow = "auto";
-  };
-}, [snippet]);
-
+    // Prevent background scrolling
+    document.body.style.overflow = "hidden";
+    return () => {
+      clearTimeout(t);
+      document.body.style.overflow = "auto";
+    };
+  }, [snippet]);
 
   useEffect(() => {
     if (showCollections) fetchCollections();
@@ -692,9 +715,9 @@ function SnippetModal({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${snippet.title || "snippet"}.${
-      (snippet.language || "txt").toLowerCase()
-    }`;
+    a.download = `${snippet.title || "snippet"}.${(
+      snippet.language || "txt"
+    ).toLowerCase()}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -747,11 +770,9 @@ function SnippetModal({
   };
 
   const handleTagClick = (tag) => {
-  onClose(); // close modal
-  if (onTagClick) onTagClick(tag); // notify parent to filter by tag
-};
-
-
+    onClose(); // close modal
+    if (onTagClick) onTagClick(tag); // notify parent to filter by tag
+  };
 
   const handleCreateCollection = async () => {
     if (!newCollection.trim()) return alert("Enter collection name");
@@ -792,20 +813,22 @@ function SnippetModal({
           <h3 className="text-xl sm:text-2xl font-bold text-blue-400 break-words">
             {isEditing ? "Edit Snippet" : snippet.title}
           </h3>
-           {/* Stats */}
-            {!isEditing && (
-              <div className="flex items-center gap-4 text-gray-400 text-sm mt-2">
-                <span className="flex items-center gap-1">
-                  <Eye className="text-blue-400" size={14} /> {snippet.views || 0}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Heart className="text-pink-500" size={14} /> {snippet.likes?.length || 0}
-                </span>
-                <span className="flex items-center gap-1">
-                  <MessageSquare className="text-green-400" size={14} /> {snippet.comments?.length || 0}
-                </span>
-              </div>
-            )}
+          {/* Stats */}
+          {!isEditing && (
+            <div className="flex items-center gap-4 text-gray-400 text-sm mt-2">
+              <span className="flex items-center gap-1">
+                <Eye className="text-blue-400" size={14} /> {snippet.views || 0}
+              </span>
+              <span className="flex items-center gap-1">
+                <Heart className="text-pink-500" size={14} />{" "}
+                {snippet.likes?.length || 0}
+              </span>
+              <span className="flex items-center gap-1">
+                <MessageSquare className="text-green-400" size={14} />{" "}
+                {snippet.comments?.length || 0}
+              </span>
+            </div>
+          )}
 
           <button
             onClick={onClose}
@@ -849,23 +872,22 @@ function SnippetModal({
               className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 font-mono text-sm"
             />
             {/* Tags Input */}
-              <input
-                type="text"
-                placeholder="Enter tags (comma separated)"
-                value={editData.tags?.join(", ") || ""}
-                onChange={(e) =>
-                  setEditData({
-                    ...editData,
-                    tags: e.target.value
-                      .split(",")
-                      .map((t) => t.trim())
-                      .filter(Boolean),
-                  })
-                }
-                className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 text-sm"
-                style={{ marginTop: "4px" }}
-              />
-
+            <input
+              type="text"
+              placeholder="Enter tags (comma separated)"
+              value={editData.tags?.join(", ") || ""}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  tags: e.target.value
+                    .split(",")
+                    .map((t) => t.trim())
+                    .filter(Boolean),
+                })
+              }
+              className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 text-sm"
+              style={{ marginTop: "4px" }}
+            />
 
             <div className="flex flex-wrap gap-3 mt-2">
               <button
@@ -890,7 +912,6 @@ function SnippetModal({
               {snippet.description}
             </p>
 
-
             {/* TAGS */}
             {snippet.tags && snippet.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
@@ -906,36 +927,34 @@ function SnippetModal({
               </div>
             )}
 
-            
-           {/* CODE BLOCK */}
-        <div className="mt-4 border border-gray-700 rounded-lg bg-gray-900/80 overflow-hidden">
-          <div className="flex justify-between items-center bg-gray-800/70 px-3 py-2 border-b border-gray-700 text-xs sm:text-sm">
-            <span className="font-semibold text-blue-400 uppercase">
-              {snippet.language || "Code"}
-            </span>
-            <button
-              onClick={handleCopy}
-              className="text-gray-300 hover:text-white flex items-center gap-1 aria-label"
-            >
-              📋 Copy
-            </button>
-          </div>
+            {/* CODE BLOCK */}
+            <div className="mt-4 border border-gray-700 rounded-lg bg-gray-900/80 overflow-hidden">
+              <div className="flex justify-between items-center bg-gray-800/70 px-3 py-2 border-b border-gray-700 text-xs sm:text-sm">
+                <span className="font-semibold text-blue-400 uppercase">
+                  {snippet.language || "Code"}
+                </span>
+                <button
+                  onClick={handleCopy}
+                  className="text-gray-300 hover:text-white flex items-center gap-1 aria-label"
+                >
+                  📋 Copy
+                </button>
+              </div>
 
-          {/* ✅ Responsive Code Area */}
-          <pre className="m-0 overflow-x-auto max-h-[60vh] sm:max-h-[500px] p-2 sm:p-4 text-[11px] sm:text-sm leading-relaxed">
-            <code
-              ref={codeRef}
-              className={`language-${prismLang} line-numbers block min-w-full whitespace-pre`}
-              style={{
-                fontSize: window.innerWidth < 640 ? "11px" : "14px",
-                lineHeight: window.innerWidth < 640 ? "1.3" : "1.6",
-              }}
-            >
-              {snippet.code}
-            </code>
-          </pre>
-        </div>
-
+              {/* ✅ Responsive Code Area */}
+              <pre className="m-0 overflow-x-auto max-h-[60vh] sm:max-h-[500px] p-2 sm:p-4 text-[11px] sm:text-sm leading-relaxed">
+                <code
+                  ref={codeRef}
+                  className={`language-${prismLang} line-numbers block min-w-full whitespace-pre`}
+                  style={{
+                    fontSize: window.innerWidth < 640 ? "11px" : "14px",
+                    lineHeight: window.innerWidth < 640 ? "1.3" : "1.6",
+                  }}
+                >
+                  {snippet.code}
+                </code>
+              </pre>
+            </div>
 
             {/* ACTION BUTTONS */}
             <div className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3 mt-5">
@@ -1034,145 +1053,158 @@ function SnippetModal({
               </div>
             </div>
 
-       {/* 💬 COMMENTS SECTION */}
-        <div className="mt-6 text-sm text-gray-300">
-          <h4 className="text-lg font-semibold text-blue-400 mb-2">💬 Comments</h4>
+            {/* 💬 COMMENTS SECTION */}
+            <div className="mt-6 text-sm text-gray-300">
+              <h4 className="text-lg font-semibold text-blue-400 mb-2">
+                💬 Comments
+              </h4>
 
-          {/* Existing comments */}
-          {snippet.comments && snippet.comments.length > 0 ? (
-            <div className="space-y-3 max-h-60 overflow-y-auto border border-gray-700 rounded-md p-3 bg-gray-800/60">
-              {snippet.comments
-                .slice()
-                .reverse()
-                .map((c, i) => (
-                  <div
-                    key={c._id || i}
-                    className="border-b border-gray-700 pb-2 last:border-0 last:pb-0 flex justify-between items-start"
-                  >
-                    <div>
-                      <p className="font-semibold text-blue-300">
-                        {c.user || "Anonymous"}
-                        <span className="text-gray-500 text-xs ml-2">
-                          {new Date(c.createdAt).toLocaleString()}
-                        </span>
-                      </p>
-                      <p className="text-gray-200 mt-1 whitespace-pre-wrap">{c.text}</p>
-                    </div>
-
-                    {/* 🗑 Delete button (only for author or snippet owner) */}
-                    {(currentUser?.username === c.user ||
-                      currentUser?.username === snippet.author) && (
-                      <button
-                        onClick={async () => {
-                          if (!confirm("Delete this comment?")) return;
-
-                          try {
-                            const token = localStorage.getItem("token");
-                            const res = await fetch(
-                              `${API}/api/snippets/${snippet._id}/comments/${c._id}`,
-                              {
-                                method: "DELETE",
-                                headers: { Authorization: `Bearer ${token}` },
-                              }
-                            );
-
-                            const text = await res.text(); // 🧠 safer parse
-                            let data;
-                            try {
-                              data = JSON.parse(text);
-                            } catch {
-                              console.error("❌ Non-JSON response:", text);
-                              alert("Server error while deleting comment");
-                              return;
-                            }
-
-                            if (res.ok) {
-                              onSnippetUpdate(data.snippet || snippet);
-                            } else {
-                              alert("❌ Failed: " + (data.error || "Unknown error"));
-                            }
-                          } catch (err) {
-                            console.error("delete comment error:", err);
-                            alert("❌ Network error while deleting comment");
-                          }
-                        }}
-                        className="text-red-400 hover:text-red-500 text-xs font-medium ml-2"
-                        title="Delete comment"
+              {/* Existing comments */}
+              {snippet.comments && snippet.comments.length > 0 ? (
+                <div className="space-y-3 max-h-60 overflow-y-auto border border-gray-700 rounded-md p-3 bg-gray-800/60">
+                  {snippet.comments
+                    .slice()
+                    .reverse()
+                    .map((c, i) => (
+                      <div
+                        key={c._id || i}
+                        className="border-b border-gray-700 pb-2 last:border-0 last:pb-0 flex justify-between items-start"
                       >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                ))}
+                        <div>
+                          <p className="font-semibold text-blue-300">
+                            {c.user || "Anonymous"}
+                            <span className="text-gray-500 text-xs ml-2">
+                              {new Date(c.createdAt).toLocaleString()}
+                            </span>
+                          </p>
+                          <p className="text-gray-200 mt-1 whitespace-pre-wrap">
+                            {c.text}
+                          </p>
+                        </div>
+
+                        {/* 🗑 Delete button (only for author or snippet owner) */}
+                        {(currentUser?.username === c.user ||
+                          currentUser?.username === snippet.author) && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm("Delete this comment?")) return;
+
+                              try {
+                                const token = localStorage.getItem("token");
+                                const res = await fetch(
+                                  `${API}/api/snippets/${snippet._id}/comments/${c._id}`,
+                                  {
+                                    method: "DELETE",
+                                    headers: {
+                                      Authorization: `Bearer ${token}`,
+                                    },
+                                  }
+                                );
+
+                                const text = await res.text(); // 🧠 safer parse
+                                let data;
+                                try {
+                                  data = JSON.parse(text);
+                                } catch {
+                                  console.error("❌ Non-JSON response:", text);
+                                  alert("Server error while deleting comment");
+                                  return;
+                                }
+
+                                if (res.ok) {
+                                  onSnippetUpdate(data.snippet || snippet);
+                                } else {
+                                  alert(
+                                    "❌ Failed: " +
+                                      (data.error || "Unknown error")
+                                  );
+                                }
+                              } catch (err) {
+                                console.error("delete comment error:", err);
+                                alert(
+                                  "❌ Network error while deleting comment"
+                                );
+                              }
+                            }}
+                            className="text-red-400 hover:text-red-500 text-xs font-medium ml-2"
+                            title="Delete comment"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 italic">
+                  No comments yet. Be the first to comment!
+                </p>
+              )}
+
+              {/* ➕ Add new comment */}
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!comment.trim()) return alert("Enter a comment");
+                  setCommentLoading(true);
+
+                  try {
+                    const res = await fetch(
+                      `${API}/api/snippets/${snippet._id}/comments`,
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${localStorage.getItem(
+                            "token"
+                          )}`,
+                        },
+                        body: JSON.stringify({ text: comment }),
+                      }
+                    );
+
+                    const text = await res.text();
+                    let data;
+                    try {
+                      data = JSON.parse(text);
+                    } catch {
+                      console.error("❌ Non-JSON response:", text);
+                      alert("Server error while adding comment");
+                      return;
+                    }
+
+                    if (res.ok) {
+                      onSnippetUpdate(data);
+                      setComment("");
+                    } else {
+                      alert("❌ Failed: " + (data.error || "Unknown error"));
+                    }
+                  } catch (err) {
+                    console.error("add comment error:", err);
+                    alert("❌ Network error while adding comment");
+                  } finally {
+                    setCommentLoading(false);
+                  }
+                }}
+                className="mt-3 flex items-center gap-2"
+              >
+                <input
+                  type="text"
+                  placeholder="Write a comment..."
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  disabled={commentLoading}
+                  className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-white border border-gray-700 focus:outline-none focus:border-blue-500 text-sm disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={commentLoading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm flex items-center justify-center disabled:opacity-50"
+                >
+                  {commentLoading ? "..." : "➤"}
+                </button>
+              </form>
             </div>
-          ) : (
-            <p className="text-gray-500 italic">
-              No comments yet. Be the first to comment!
-            </p>
-          )}
-
-          {/* ➕ Add new comment */}
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (!comment.trim()) return alert("Enter a comment");
-              setCommentLoading(true);
-
-              try {
-                const res = await fetch(`${API}/api/snippets/${snippet._id}/comments`, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                  },
-                  body: JSON.stringify({ text: comment }),
-                });
-
-                const text = await res.text();
-                let data;
-                try {
-                  data = JSON.parse(text);
-                } catch {
-                  console.error("❌ Non-JSON response:", text);
-                  alert("Server error while adding comment");
-                  return;
-                }
-
-                if (res.ok) {
-                  onSnippetUpdate(data);
-                  setComment("");
-                } else {
-                  alert("❌ Failed: " + (data.error || "Unknown error"));
-                }
-              } catch (err) {
-                console.error("add comment error:", err);
-                alert("❌ Network error while adding comment");
-              } finally {
-                setCommentLoading(false);
-              }
-            }}
-            className="mt-3 flex items-center gap-2"
-          >
-            <input
-              type="text"
-              placeholder="Write a comment..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              disabled={commentLoading}
-              className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-white border border-gray-700 focus:outline-none focus:border-blue-500 text-sm disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={commentLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm flex items-center justify-center disabled:opacity-50"
-            >
-              {commentLoading ? "..." : "➤"}
-            </button>
-          </form>
-        </div>
-
-
-
           </>
         )}
       </div>
@@ -1180,19 +1212,25 @@ function SnippetModal({
   );
 }
 
-
-
-
 // ------------------------------------------------------------------
 // Collections UI
 // ------------------------------------------------------------------
-function CollectionsPage({ collections, onSelectCollection, onEditCollection, onDeleteCollection }) {
+function CollectionsPage({
+  collections,
+  onSelectCollection,
+  onEditCollection,
+  onDeleteCollection,
+}) {
   return (
     <div className="p-8">
-      <h2 className="text-2xl font-bold text-blue-400 mb-6">📂 My Collections</h2>
+      <h2 className="text-2xl font-bold text-blue-400 mb-6">
+        📂 My Collections
+      </h2>
 
       {collections.length === 0 ? (
-        <p className="text-gray-500">No collections yet. Create one by adding a snippet.</p>
+        <p className="text-gray-500">
+          No collections yet. Create one by adding a snippet.
+        </p>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {collections.map((c) => (
@@ -1206,9 +1244,13 @@ function CollectionsPage({ collections, onSelectCollection, onEditCollection, on
                 <div className="bg-blue-600/20 rounded-xl p-3 group-hover:bg-blue-600/30 transition">
                   <FolderOpen className="text-blue-400 w-6 h-6" />
                 </div>
-                <h4 className="text-lg font-semibold text-blue-300">{c.name}</h4>
+                <h4 className="text-lg font-semibold text-blue-300">
+                  {c.name}
+                </h4>
               </div>
-              {c.description && <p className="text-sm text-gray-400 mt-2">{c.description}</p>}
+              {c.description && (
+                <p className="text-sm text-gray-400 mt-2">{c.description}</p>
+              )}
               <div className="mt-4 flex justify-between text-xs text-gray-400">
                 <span>{c.snippets?.length || 0} snippets</span>
                 <span>{formatDate(c.createdAt)}</span>
@@ -1256,13 +1298,13 @@ function CollectionDetailPage({ collection, onBack, onSelectSnippet }) {
       <h2 className="text-2xl font-bold text-blue-400">{collection.name}</h2>
       <p className="text-gray-400">{collection.description}</p>
 
-      <SnippetGrid snippets={collection.snippets || []} onSelect={onSelectSnippet} />
+      <SnippetGrid
+        snippets={collection.snippets || []}
+        onSelect={onSelectSnippet}
+      />
     </div>
   );
 }
-
-
-
 
 // ---------------- add snippet form ----------------
 function AddSnippetForm({ onAdd }) {
@@ -1288,7 +1330,11 @@ function AddSnippetForm({ onAdd }) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       onAdd?.(res.data);
-      setTitle(""); setDescription(""); setLanguage(""); setCode(""); setPrivacy("public");
+      setTitle("");
+      setDescription("");
+      setLanguage("");
+      setCode("");
+      setPrivacy("public");
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.error || "Error adding snippet");
@@ -1382,9 +1428,6 @@ function AddSnippetForm({ onAdd }) {
     </form>
   );
 }
-
-
-
 
 function Profile() {
   const [user, setUser] = useState(null);
@@ -1630,9 +1673,7 @@ function Profile() {
             </p>
 
             {githubProfile.email && (
-              <p className="text-gray-400 text-sm">
-                📧 {githubProfile.email}
-              </p>
+              <p className="text-gray-400 text-sm">📧 {githubProfile.email}</p>
             )}
 
             <button
@@ -1664,8 +1705,6 @@ function Profile() {
     </div>
   );
 }
-
-
 
 function Footer() {
   return (
@@ -1702,7 +1741,10 @@ function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/collections" className="hover:text-blue-400 transition">
+                <Link
+                  to="/collections"
+                  className="hover:text-blue-400 transition"
+                >
                   Collections
                 </Link>
               </li>
@@ -1781,8 +1823,9 @@ function Footer() {
         {/* Divider */}
         <div className="border-t border-gray-800 mt-10 pt-6 text-sm text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-3">
           <p>
-            © {new Date().getFullYear()} <span className="font-semibold text-gray-300">CODE X</span>. 
-            All rights reserved.
+            © {new Date().getFullYear()}{" "}
+            <span className="font-semibold text-gray-300">CODE X</span>. All
+            rights reserved.
           </p>
           <p>
             Built with 💻 by{" "}
@@ -1796,11 +1839,6 @@ function Footer() {
   );
 }
 
-
-
-
-
-
 export default function CodeSharingPage({ onLogout }) {
   const [page, setPage] = useState("home");
   const [publicSnippets, setPublicSnippets] = useState([]);
@@ -1812,11 +1850,19 @@ export default function CodeSharingPage({ onLogout }) {
   const [collections, setCollections] = useState([]);
   const [selectedCollection, setSelectedCollection] = useState(null);
 
-// near the top of the component, add new states
-const [currentFilter, setCurrentFilter] = useState([]);
-const [loading, setLoading] = useState(false);
+  // near the top of the component, add new states
+  const [currentFilter, setCurrentFilter] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-const [trending, setTrending] = useState([]);
+  const [trending, setTrending] = useState([]);
+
+  const [exploreData, setExploreData] = useState({
+    trending: [],
+    recent: [],
+    byLanguage: {},
+  });
+  const [loadingExplore, setLoadingExplore] = useState(false);
+
   // ✅ Search
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1829,10 +1875,9 @@ const [trending, setTrending] = useState([]);
       : [];
 
   useEffect(() => {
-   
-   axios.interceptors.response.use(
-      r => r,
-      err => {
+    axios.interceptors.response.use(
+      (r) => r,
+      (err) => {
         if (err.response && err.response.status === 401) {
           localStorage.removeItem("token");
           // optional: show toast "Session expired"
@@ -1842,8 +1887,6 @@ const [trending, setTrending] = useState([]);
       }
     );
 
-
-   
     // Fetch public snippets
     axios
       .get(`${API}/api/snippets/public`)
@@ -1875,13 +1918,11 @@ const [trending, setTrending] = useState([]);
       fetchCollections();
     }
 
-// ✅ Fetch Trending Snippets
-axios
-  .get(`${API}/api/snippets/trending`)
-  .then((res) => setTrending(res.data || []))
-  .catch((err) => console.error("Error fetching trending:", err));
-
-
+    // ✅ Fetch Trending Snippets
+    axios
+      .get(`${API}/api/snippets/trending`)
+      .then((res) => setTrending(res.data || []))
+      .catch((err) => console.error("Error fetching trending:", err));
   }, []);
 
   // ========================= Collections =========================
@@ -1971,43 +2012,42 @@ axios
   };
 
   const handleLike = async (id) => {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) return alert("Login required to like snippets!");
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return alert("Login required to like snippets!");
 
-    const res = await axios.post(
-      `${API}/api/snippets/${id}/like`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+      const res = await axios.post(
+        `${API}/api/snippets/${id}/like`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    // ✅ Backend now returns like count + likes array + message
-    const updatedSnippet = res.data;
+      // ✅ Backend now returns like count + likes array + message
+      const updatedSnippet = res.data;
 
-    // ✅ Merge into UI
-    setPublicSnippets((prev) =>
-      prev.map((s) =>
-        s._id === id ? { ...s, likes: updatedSnippet.likes } : s
-      )
-    );
-    setUserSnippets((prev) =>
-      prev.map((s) =>
-        s._id === id ? { ...s, likes: updatedSnippet.likes } : s
-      )
-    );
-    if (selectedSnippet && selectedSnippet._id === id) {
-      setSelectedSnippet((prev) => ({
-        ...prev,
-        likes: updatedSnippet.likes,
-      }));
+      // ✅ Merge into UI
+      setPublicSnippets((prev) =>
+        prev.map((s) =>
+          s._id === id ? { ...s, likes: updatedSnippet.likes } : s
+        )
+      );
+      setUserSnippets((prev) =>
+        prev.map((s) =>
+          s._id === id ? { ...s, likes: updatedSnippet.likes } : s
+        )
+      );
+      if (selectedSnippet && selectedSnippet._id === id) {
+        setSelectedSnippet((prev) => ({
+          ...prev,
+          likes: updatedSnippet.likes,
+        }));
+      }
+
+      console.log(updatedSnippet.message);
+    } catch (err) {
+      console.error("like error:", err);
     }
-
-    console.log(updatedSnippet.message);
-  } catch (err) {
-    console.error("like error:", err);
-  }
-};
-
+  };
 
   const handleComment = async (id, text) => {
     try {
@@ -2024,8 +2064,8 @@ axios
     }
   };
 
-// --- GitHub Sync Function ---
-// 🧩 Add this here:
+  // --- GitHub Sync Function ---
+  // 🧩 Add this here:
   const handleSyncGithub = async (snippetId) => {
     try {
       const token = localStorage.getItem("token");
@@ -2058,202 +2098,284 @@ axios
     }
   };
 
-function debounce(func, delay) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => func(...args), delay);
-  };
-}
-
-
-
+  function debounce(func, delay) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => func(...args), delay);
+    };
+  }
 
   // ========================= Search =========================
   // update handleNavigate (search)
-const handleNavigate = async (targetPage, query) => {
-  setPage(targetPage);
+  const handleNavigate = async (targetPage, query) => {
+    setPage(targetPage);
 
-  // If caller passed an array of snippet objects, show them directly
-  if (targetPage === "search" && Array.isArray(query)) {
-    setSearchResults(query);
-    setSearchQuery(""); // optional: no text query
-    return;
-  }
+    // If caller passed an array of snippet objects, show them directly
+    if (targetPage === "search" && Array.isArray(query)) {
+      setSearchResults(query);
+      setSearchQuery(""); // optional: no text query
+      return;
+    }
 
-  // Normalize query into a string
-  const normalizedQuery = Array.isArray(query)
-    ? query.join(" ")
-    : (query || "").toString();
+    // Normalize query into a string
+    const normalizedQuery = Array.isArray(query)
+      ? query.join(" ")
+      : (query || "").toString();
 
-  if (targetPage === "search") {
-    setSearchQuery(normalizedQuery);
+    if (targetPage === "search") {
+      setSearchQuery(normalizedQuery);
 
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
 
-    searchDebounceRef.current = setTimeout(async () => {
-      if (!normalizedQuery.trim()) {
+      searchDebounceRef.current = setTimeout(async () => {
+        if (!normalizedQuery.trim()) {
+          setSearchResults([]);
+          return;
+        }
+
+        setLoading(true);
+        try {
+          const res = await axios.get(
+            `${API}/api/snippets/search?q=${encodeURIComponent(
+              normalizedQuery
+            )}`
+          );
+          setSearchResults(res.data || []);
+        } catch (err) {
+          console.error("search error:", err);
+          setSearchResults([]);
+        } finally {
+          setLoading(false);
+        }
+      }, 350);
+    }
+  };
+
+  const fetchExploreSnippets = async () => {
+    try {
+      setLoadingExplore(true);
+      const res = await fetch(`${API}/api/snippets/explore`);
+      const data = await res.json();
+      setExploreData(data);
+    } catch (err) {
+      console.error("Error loading explore:", err);
+    } finally {
+      setLoadingExplore(false);
+    }
+  };
+
+  // ========================= Tag Filtering =========================
+  // top-level component
+  const fetchSnippetsByTag = async (tag) => {
+    try {
+      // toggle the tag in currentFilter
+      const prev = Array.isArray(currentFilter) ? currentFilter : [];
+      const updated = prev.includes(tag)
+        ? prev.filter((t) => t !== tag)
+        : [...prev, tag];
+
+      setCurrentFilter(updated);
+
+      // if no filters -> reset
+      if (updated.length === 0) {
         setSearchResults([]);
-        return;
+        setSearchQuery("");
+        setPage("home");
+        return [];
       }
+
+      // Build a query (space-separated or join by space)
+      const query = updated.join(" ");
 
       setLoading(true);
       try {
         const res = await axios.get(
-          `${API}/api/snippets/search?q=${encodeURIComponent(normalizedQuery)}`
+          `${API}/api/snippets/search?q=${encodeURIComponent(query)}`
         );
-        setSearchResults(res.data || []);
+        const data = res.data || [];
+        setSearchResults(data);
+        setPage("search");
+        setSearchQuery(query);
+        return data;
       } catch (err) {
-        console.error("search error:", err);
+        console.error("Tag filter fetch error:", err);
         setSearchResults([]);
+        return [];
       } finally {
         setLoading(false);
       }
-    }, 350);
-  }
-};
-
-
-    // ========================= Tag Filtering =========================
-  // top-level component
-const fetchSnippetsByTag = async (tag) => {
-  try {
-    // toggle the tag in currentFilter
-    const prev = Array.isArray(currentFilter) ? currentFilter : [];
-    const updated = prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag];
-
-    setCurrentFilter(updated);
-
-    // if no filters -> reset
-    if (updated.length === 0) {
-      setSearchResults([]);
-      setSearchQuery("");
-      setPage("home");
-      return [];
-    }
-
-    // Build a query (space-separated or join by space)
-    const query = updated.join(" ");
-
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API}/api/snippets/search?q=${encodeURIComponent(query)}`);
-      const data = res.data || [];
-      setSearchResults(data);
-      setPage("search");
-      setSearchQuery(query);
-      return data;
     } catch (err) {
-      console.error("Tag filter fetch error:", err);
-      setSearchResults([]);
+      console.error("Tag filter error:", err);
       return [];
-    } finally {
-      setLoading(false);
     }
-  } catch (err) {
-    console.error("Tag filter error:", err);
-    return [];
-  }
-};
+  };
 
-
-
-
-
-    // Clear all filters
-    const clearFilter = () => {
-      setCurrentFilter([]);
-      setSearchResults([]);
-      setPage("home");
-    };
-
+  // Clear all filters
+  const clearFilter = () => {
+    setCurrentFilter([]);
+    setSearchResults([]);
+    setPage("home");
+  };
 
   // ========================= Render =========================
   return (
     <div className="min-h-screen w-full bg-gray-950 text-gray-200">
       <Header
-        current={page}
-        onNavigate={handleNavigate}
-        onLogout={onLogout}
-        fetchSnippetsByTag={fetchSnippetsByTag}
-        clearFilter={clearFilter}
-        loading={loading}
-        currentFilter={currentFilter}
-      />
-
-
+          current={page}
+          onNavigate={handleNavigate}
+          onLogout={onLogout}
+          fetchSnippetsByTag={fetchSnippetsByTag}
+          fetchExploreSnippets={fetchExploreSnippets} // ✅ add this line
+          clearFilter={clearFilter}
+          loading={loading}
+          currentFilter={currentFilter}
+        />
 
 
       <main className="w-full px-6 py-10 space-y-12">
         {page === "home" && (
-          <SnippetGrid snippets={publicSnippets} onSelect={fetchSnippetById} onTagClick={(tag) => fetchSnippetsByTag(tag)} />
-
+          <SnippetGrid
+            snippets={publicSnippets}
+            onSelect={fetchSnippetById}
+            onTagClick={(tag) => fetchSnippetsByTag(tag)}
+          />
         )}
 
-{/* 🔥 Trending Snippets Section */}
-{page === "home" && trending.length > 0 && (
-  <section className="mt-16 max-w-6xl mx-auto">
-    <div className="flex items-center justify-between mb-6 px-2">
-      <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-pink-500 flex items-center gap-2">
-        🔥 Trending Snippets
-      </h2>
+        {/* 🔥 Trending Snippets Section */}
+        {page === "home" && trending.length > 0 && (
+          <section className="mt-16 max-w-6xl mx-auto">
+            <div className="flex items-center justify-between mb-6 px-2">
+              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-pink-500 flex items-center gap-2">
+                🔥 Trending Snippets
+              </h2>
 
-      <span className="text-sm text-gray-400">Top {Math.min(trending.length, 10)} this week</span>
-    </div>
-
-    {/* Scrollable Row */}
-    <div className="flex gap-6 overflow-x-auto pb-4 px-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900 snap-x snap-mandatory">
-      {trending.slice(0, 10).map((snippet) => (
-        <div
-          key={snippet._id}
-          onClick={() => fetchSnippetById(snippet._id)}
-          className="group cursor-pointer min-w-[280px] max-w-[320px] flex-shrink-0 snap-start p-5 rounded-2xl bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 border border-gray-800 hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300"
-        >
-          {/* Title */}
-          <h3 className="font-semibold text-lg text-gray-100 mb-2 group-hover:text-blue-400 transition">
-            {snippet.title || "Untitled Snippet"}
-          </h3>
-
-          {/* Description */}
-          <p className="text-gray-400 text-sm line-clamp-2 mb-3">
-            {snippet.description || "No description available."}
-          </p>
-
-          {/* Info Row */}
-          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
-            {snippet.language && (
-              <span className="flex items-center gap-1 bg-gray-800 px-2 py-0.5 rounded-full text-blue-300">
-                <Code2 size={14} /> {snippet.language}
+              <span className="text-sm text-gray-400">
+                Top {Math.min(trending.length, 10)} this week
               </span>
-            )}
-            <span className="flex items-center gap-1">
-              <Heart size={14} className="text-pink-500" />
-              {snippet.likes?.length || 0}
-            </span>
-            <span className="flex items-center gap-1">
-              <MessageCircle size={14} className="text-green-400" />
-              {snippet.comments?.length || 0}
-            </span>
-            <span className="flex items-center gap-1">
-              <Eye size={14} className="text-yellow-400" />
-              {snippet.views || 0}
-            </span>
+            </div>
+
+            {/* Scrollable Row */}
+            <div className="flex gap-6 overflow-x-auto pb-4 px-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900 snap-x snap-mandatory">
+              {trending.slice(0, 10).map((snippet) => (
+                <div
+                  key={snippet._id}
+                  onClick={() => fetchSnippetById(snippet._id)}
+                  className="group cursor-pointer min-w-[280px] max-w-[320px] flex-shrink-0 snap-start p-5 rounded-2xl bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 border border-gray-800 hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300"
+                >
+                  {/* Title */}
+                  <h3 className="font-semibold text-lg text-gray-100 mb-2 group-hover:text-blue-400 transition">
+                    {snippet.title || "Untitled Snippet"}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="text-gray-400 text-sm line-clamp-2 mb-3">
+                    {snippet.description || "No description available."}
+                  </p>
+
+                  {/* Info Row */}
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
+                    {snippet.language && (
+                      <span className="flex items-center gap-1 bg-gray-800 px-2 py-0.5 rounded-full text-blue-300">
+                        <Code2 size={14} /> {snippet.language}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <Heart size={14} className="text-pink-500" />
+                      {snippet.likes?.length || 0}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MessageCircle size={14} className="text-green-400" />
+                      {snippet.comments?.length || 0}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Eye size={14} className="text-yellow-400" />
+                      {snippet.views || 0}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {page === "home" && trending.length === 0 && (
+          <div className="text-center text-gray-500 py-16">
+            <h3 className="text-lg font-semibold mb-1 text-gray-300">
+              No Trending Snippets Yet
+            </h3>
+            <p className="text-sm text-gray-500">
+              ❤️ Like some snippets to make them trend!
+            </p>
           </div>
-        </div>
-      ))}
-    </div>
-  </section>
-)}
+        )}
 
+        {page === "explore" && (
+          <div className="px-6 py-8 space-y-10">
+            {loadingExplore ? (
+              <div className="flex justify-center items-center text-gray-400">
+                Loading explore...
+              </div>
+            ) : exploreData && exploreData.trending ? (
+              <>
+                {/* Trending */}
+                <section>
+                  <h2 className="text-2xl font-bold text-gray-100 mb-3">
+                    🔥 Trending Snippets
+                  </h2>
+                  <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide">
+                    {exploreData.trending.length > 0 ? (
+                      exploreData.trending.map((s) => (
+                        <div key={s._id} className="flex-shrink-0 w-72">
+                          <SnippetGrid snippets={[s]} onSelect={fetchSnippetById} />
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-400 text-sm">
+                        No trending snippets yet.
+                      </p>
+                    )}
+                  </div>
+                </section>
 
-{page === "home" && trending.length === 0 && (
-  <div className="text-center text-gray-500 py-16">
-    <h3 className="text-lg font-semibold mb-1 text-gray-300">No Trending Snippets Yet</h3>
-    <p className="text-sm text-gray-500">❤️ Like some snippets to make them trend!</p>
-  </div>
-)}
+                {/* Recent */}
+                <section>
+                  <h2 className="text-2xl font-bold text-gray-100 mb-3">
+                    🆕 Recently Added
+                  </h2>
+                  <SnippetGrid
+                    snippets={exploreData.recent || []}
+                    onSelect={fetchSnippetById}
+                  />
+                </section>
 
-
+                {/* By Language */}
+                {Object.entries(exploreData.byLanguage || {}).map(([lang, snippets]) => (
+                  <section key={lang}>
+                    <h2 className="text-xl font-semibold text-gray-100 capitalize mb-3">
+                      💻 {lang} Snippets
+                    </h2>
+                    <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide">
+                      {snippets.length > 0 ? (
+                        snippets.map((s) => (
+                          <div key={s._id} className="flex-shrink-0 w-72">
+                            <SnippetGrid snippets={[s]} onSelect={fetchSnippetById} />
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-400 text-sm">
+                          No snippets available.
+                        </p>
+                      )}
+                    </div>
+                  </section>
+                ))}
+              </>
+            ) : (
+              <p className="text-gray-500 text-center">Failed to load explore data.</p>
+            )}
+          </div>
+        )}
 
 
         {page === "add" && <AddSnippetForm onAdd={handleAddSnippet} />}
@@ -2284,73 +2406,84 @@ const fetchSnippetsByTag = async (tag) => {
         )}
 
         {/* ✅ Search Results Section */}
-          {page === "search" && (
-            <div className="animate-fadeIn">
-              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 text-gray-200">
-                <span role="img" aria-label="search">🔍</span>
-                <span>
-                  Search Results for{" "}
-                  <span className="text-blue-400 font-semibold">{searchQuery}</span>
+        {page === "search" && (
+          <div className="animate-fadeIn">
+            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 text-gray-200">
+              <span role="img" aria-label="search">
+                🔍
+              </span>
+              <span>
+                Search Results for{" "}
+                <span className="text-blue-400 font-semibold">
+                  {searchQuery}
                 </span>
-              </h2>
+              </span>
+            </h2>
 
-              {/* 🔄 Loading State */}
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-24 text-gray-400">
-                  <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <p className="text-sm text-gray-400">Fetching your snippets...</p>
+            {/* 🔄 Loading State */}
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-sm text-gray-400">
+                  Fetching your snippets...
+                </p>
+              </div>
+            ) : searchResults.length > 0 ? (
+              /* ✅ Results Grid */
+              <SnippetGrid
+                snippets={searchResults}
+                onSelect={fetchSnippetById}
+              />
+            ) : (
+              /* ❌ No Results Found */
+              <div className="flex flex-col items-center justify-center py-20 text-center text-gray-400 transition-all duration-300">
+                <div className="bg-gradient-to-br from-blue-500/20 to-purple-600/10 rounded-full p-5 mb-5 shadow-lg">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-10 h-10 text-blue-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
                 </div>
-              ) : searchResults.length > 0 ? (
-                /* ✅ Results Grid */
-                <SnippetGrid snippets={searchResults} onSelect={fetchSnippetById} />
-              ) : (
-                /* ❌ No Results Found */
-                <div className="flex flex-col items-center justify-center py-20 text-center text-gray-400 transition-all duration-300">
-                  <div className="bg-gradient-to-br from-blue-500/20 to-purple-600/10 rounded-full p-5 mb-5 shadow-lg">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-10 h-10 text-blue-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
 
-                  <h3 className="text-lg font-semibold text-gray-200 mb-1">
-                    No snippets found
-                  </h3>
-                  <p className="text-sm text-gray-500 max-w-md">
-                    We couldn’t find any snippets matching{" "}
-                    <span className="text-blue-400 font-medium">{searchQuery}</span>.  
-                    Try searching with a different keyword or check your filters.
-                  </p>
+                <h3 className="text-lg font-semibold text-gray-200 mb-1">
+                  No snippets found
+                </h3>
+                <p className="text-sm text-gray-500 max-w-md">
+                  We couldn’t find any snippets matching{" "}
+                  <span className="text-blue-400 font-medium">
+                    {searchQuery}
+                  </span>
+                  . Try searching with a different keyword or check your
+                  filters.
+                </p>
 
-                  <div className="mt-6 flex flex-wrap gap-3 justify-center">
-                    <button
-                      onClick={() => setPage("home")}
-                      className="px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium shadow-md hover:opacity-90 transition"
-                    >
-                      🔙 Back to Home
-                    </button>
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="px-4 py-2 text-sm rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition"
-                    >
-                      Clear Search
-                    </button>
-                  </div>
+                <div className="mt-6 flex flex-wrap gap-3 justify-center">
+                  <button
+                    onClick={() => setPage("home")}
+                    className="px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium shadow-md hover:opacity-90 transition"
+                  >
+                    🔙 Back to Home
+                  </button>
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="px-4 py-2 text-sm rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition"
+                  >
+                    Clear Search
+                  </button>
                 </div>
-              )}
-            </div>
-          )}
-
+              </div>
+            )}
+          </div>
+        )}
 
         <SnippetModal
           snippet={selectedSnippet}
@@ -2361,6 +2494,7 @@ const fetchSnippetsByTag = async (tag) => {
           onComment={handleComment}
           onSyncGithub={handleSyncGithub}
           onTagClick={(tag) => fetchSnippetsByTag(tag)} // ✅ fixed
+          fetchExploreSnippets={fetchExploreSnippets}
         />
       </main>
       <Footer />
