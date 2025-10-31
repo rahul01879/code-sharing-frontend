@@ -2,23 +2,27 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/codeX.png" type="image/png"/>
-    <link rel="apple-touch-icon" href="/codeX.png" />
-
-  <!-- Theme color (for dark tab styling on mobile browsers) -->
-  <meta name="theme-color" content="#0d1117" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- ✅ Page Title -->
     <title>CodeX — Modern Code Sharing Platform</title>
 
-    <!-- ✅ Meta Description (for SEO) -->
+    <!-- ✅ Favicon + Icons -->
+    <!-- 32x32 and 512x512 versions recommended -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/codeX.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/codeX.png" />
+    <link rel="shortcut icon" href="/codeX.png" type="image/png" />
+
+    <!-- ✅ Theme color for browser tabs & PWA -->
+    <meta name="theme-color" content="#0d1117" />
+
+    <!-- ✅ SEO Meta Description -->
     <meta
       name="description"
-      content="CodeX is a modern code sharing platform where developers can create, organize, and showcase their snippets easily."
+      content="CodeX — A modern, open-source code sharing platform for developers to create, explore, and collaborate on snippets."
     />
 
-    <!-- ✅ Open Graph (for social sharing preview) -->
+    <!-- ✅ Open Graph / Social Preview -->
     <meta property="og:title" content="CodeX — Modern Code Sharing Platform" />
     <meta
       property="og:description"
@@ -28,10 +32,17 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://code-sharing-frontend-pi.vercel.app" />
 
-    <!-- ✅ Optional: Favicon -->
-    <link rel="icon" href="/favicon.ico" />
+    <!-- ✅ Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CodeX — Modern Code Sharing Platform" />
+    <meta
+      name="twitter:description"
+      content="A clean and powerful place for developers to share and explore code snippets."
+    />
+    <meta name="twitter:image" content="/codeX.png" />
   </head>
-  <body>
+
+  <body style="background-color: #0d1117;">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
