@@ -37,3 +37,10 @@
 .animate-fadeIn {
   animation: fadeIn 0.5s ease-in-out forwards;
 }
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0d1117; /* match your dark theme */
+  color-scheme: dark;
+}
