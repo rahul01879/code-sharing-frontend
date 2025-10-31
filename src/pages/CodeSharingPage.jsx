@@ -1474,6 +1474,7 @@ function Profile() {
   const [user, setUser] = useState(null);
   const [githubConnected, setGithubConnected] = useState(false);
   const [githubProfile, setGithubProfile] = useState(null);
+  const [githubToken, setGithubToken] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
