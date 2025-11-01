@@ -39,6 +39,7 @@ import {
   FaCodeBranch,
   FaHeart,
   FaEye,
+  FaClock,
 } from "react-icons/fa";
 
 import {
@@ -66,6 +67,9 @@ import {
   MessageSquare,
   MessageCircle,
   Compass,
+  Download,
+  Edit3,
+  
 } from "lucide-react";
 
 import "../App.css";
@@ -994,102 +998,136 @@ function SnippetModal({
               </pre>
             </div>
 
-            {/* ACTION BUTTONS */}
-            <div className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3 mt-5">
+{/* ⚙️ MODERN ACTION BAR */}
+<div className="mt-6 border-t border-gray-800 pt-5">
+  <h4 className="text-lg font-semibold text-gray-300 mb-4 flex items-center gap-2">
+    <span className="text-blue-400">⚙</span> Actions
+  </h4>
+
+  <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4">
+    <button
+  onClick={() => onLike?.(snippet._id)}
+  className={`relative flex flex-col items-center gap-1 px-4 py-3 rounded-xl transition-all
+    ${snippet.isLikedByUser
+      ? "bg-pink-600 text-white scale-105 shadow-pink-500/30"
+      : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105"}
+  `}
+>
+  {/* ❤️ Heart Icon with Burst */}
+  <span
+    className={`text-xl transition-transform duration-300 ${
+      snippet.animateLike ? "scale-150" : "scale-100"
+    }`}
+    onAnimationEnd={() => (snippet.animateLike = false)}
+  >
+    {snippet.isLikedByUser ? "💖" : "🤍"}
+  </span>
+  <span className="text-xs">
+    {snippet.likes?.length || 0} {snippet.likes?.length === 1 ? "Like" : "Likes"}
+  </span>
+</button>
+
+
+    {/* ⬇ Download */}
+    <button
+      onClick={handleDownload}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/80 border border-gray-700 
+      text-gray-300 hover:text-blue-400 hover:border-blue-500 hover:bg-gray-800 transition-all 
+      duration-300 shadow-sm hover:shadow-blue-500/10"
+    >
+      <Download size={16} className="text-gray-400" />
+      <span className="text-sm">Download</span>
+    </button>
+
+    {/* ✏ Edit */}
+    <button
+      onClick={() => setIsEditing(true)}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/80 border border-gray-700 
+      text-gray-300 hover:text-blue-400 hover:border-blue-500 hover:bg-gray-800 transition-all 
+      duration-300 shadow-sm hover:shadow-blue-500/10"
+    >
+      <Edit3 size={16} className="text-gray-400" />
+      <span className="text-sm">Edit</span>
+    </button>
+
+    {/* 🗑 Delete */}
+    {onDelete && (
+      <button
+        onClick={() => onDelete(snippet._id)}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/80 border border-gray-700 
+        text-gray-300 hover:text-red-400 hover:border-red-500 hover:bg-gray-800 transition-all 
+        duration-300 shadow-sm hover:shadow-red-500/10"
+      >
+        <Trash2 size={16} className="text-gray-400" />
+        <span className="text-sm">Delete</span>
+      </button>
+    )}
+
+    {/* 🔄 GitHub Sync */}
+    <button
+      onClick={() => onSyncGithub(snippet._id)}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/80 border border-gray-700 
+      text-gray-300 hover:text-blue-400 hover:border-blue-500 hover:bg-gray-800 transition-all 
+      duration-300 shadow-sm hover:shadow-blue-500/10"
+    >
+      <Github size={16} className="text-gray-400" />
+      <span className="text-sm">Sync GitHub</span>
+    </button>
+
+    {/* 📂 Collection */}
+    <div className="relative">
+      <button
+        onClick={() => setShowCollections(!showCollections)}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/80 border border-gray-700 
+        text-gray-300 hover:text-blue-400 hover:border-blue-500 hover:bg-gray-800 transition-all 
+        duration-300 shadow-sm hover:shadow-blue-500/10"
+      >
+        <Folder size={16} className="text-gray-400" />
+        <span className="text-sm">Collection</span>
+      </button>
+
+      {showCollections && (
+        <div className="absolute right-0 mt-3 bg-gray-900 border border-gray-700 rounded-xl shadow-xl p-3 w-56 z-10 animate-fade-in">
+          {collections.length > 0 ? (
+            collections.map((c) => (
               <button
-                onClick={() => onLike?.(snippet._id)}
-                className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-white text-sm flex items-center gap-1"
+                key={c._id}
+                onClick={() => handleAddToCollection(c._id)}
+                className="block w-full text-left px-3 py-2 text-sm text-gray-200 
+                hover:bg-gray-800 hover:text-blue-400 rounded-lg transition-all"
               >
-                👍 {snippet.likes?.length || 0}
+                {c.name}
               </button>
+            ))
+          ) : (
+            <p className="text-gray-500 text-sm italic">No collections yet</p>
+          )}
 
-              <button
-                onClick={handleDownload}
-                className="bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg text-white text-sm aria-label"
-              >
-                ⬇ Download
-              </button>
+          {/* ➕ Create new collection */}
+          <div className="mt-3 border-t border-gray-700 pt-2">
+            <input
+              type="text"
+              placeholder="New collection..."
+              value={newCollection}
+              onChange={(e) => setNewCollection(e.target.value)}
+              className="w-full px-2 py-1 bg-gray-800 text-white rounded-lg text-sm 
+              border border-gray-700 focus:border-blue-500 focus:ring-0"
+            />
+            <button
+              onClick={handleCreateCollection}
+              className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm 
+              py-1.5 rounded-lg transition-all font-medium"
+            >
+              + Create
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
 
-              <button
-                onClick={() => setIsEditing(true)}
-                className="bg-yellow-500 hover:bg-yellow-600 px-3 py-2 rounded-lg text-white text-sm"
-              >
-                ✏ Edit
-              </button>
 
-              {onDelete && (
-                <button
-                  onClick={() => onDelete(snippet._id)}
-                  className="bg-red-500 hover:bg-red-600 px-3 py-2 rounded-lg text-white text-sm"
-                >
-                  🗑 Delete
-                </button>
-              )}
-
-              {/* 🔄 Sync GitHub */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => onSyncGithub(snippet._id)}
-                  className="px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md text-sm hover:scale-105 transition"
-                >
-                  🔄 Sync GitHub
-                </button>
-                {snippet.gistUrl && (
-                  <a
-                    href={snippet.gistUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 underline text-sm hover:text-blue-300"
-                  >
-                    View →
-                  </a>
-                )}
-              </div>
-
-              {/* 📂 Add to Collection */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowCollections(!showCollections)}
-                  className="bg-teal-600 hover:bg-teal-700 px-3 py-2 rounded-lg text-white text-sm"
-                >
-                  📂 Collection
-                </button>
-                {showCollections && (
-                  <div className="absolute right-0 mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-2 w-52 max-h-56 overflow-y-auto z-10">
-                    {collections.length > 0 ? (
-                      collections.map((c) => (
-                        <button
-                          key={c._id}
-                          onClick={() => handleAddToCollection(c._id)}
-                          className="block w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 rounded"
-                        >
-                          {c.name}
-                        </button>
-                      ))
-                    ) : (
-                      <p className="text-gray-500 text-sm p-2">
-                        No collections yet
-                      </p>
-                    )}
-                    <div className="mt-2 border-t border-gray-700 pt-2">
-                      <input
-                        type="text"
-                        placeholder="New collection..."
-                        value={newCollection}
-                        onChange={(e) => setNewCollection(e.target.value)}
-                        className="w-full px-2 py-1 bg-gray-700 text-white rounded text-sm"
-                      />
-                      <button
-                        onClick={handleCreateCollection}
-                        className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm py-1 rounded"
-                      >
-                        ➕ Create
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* 💬 COMMENTS SECTION */}
             <div className="mt-6 text-sm text-gray-300">
@@ -2293,43 +2331,100 @@ export default function CodeSharingPage({ onLogout }) {
     setSelectedSnippet(updatedSnippet);
   };
 
-  const handleLike = async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return alert("Login required to like snippets!");
+const handleLike = async (id) => {
+  try {
+    // 🔹 Fetch token & user from storage
+    const token = localStorage.getItem("token");
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    let userId = userData._id || userData.id;
+if (!userId && token) {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    userId = payload.id; // 👈 assuming your JWT payload uses "id"
+  } catch (err) {
+    console.warn("JWT decode failed:", err);
+  }
+}
 
-      const res = await axios.post(
-        `${API}/api/snippets/${id}/like`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
 
-      // ✅ Backend now returns like count + likes array + message
-      const updatedSnippet = res.data;
 
-      // ✅ Merge into UI
-      setPublicSnippets((prev) =>
-        prev.map((s) =>
-          s._id === id ? { ...s, likes: updatedSnippet.likes } : s
-        )
-      );
-      setUserSnippets((prev) =>
-        prev.map((s) =>
-          s._id === id ? { ...s, likes: updatedSnippet.likes } : s
-        )
-      );
-      if (selectedSnippet && selectedSnippet._id === id) {
-        setSelectedSnippet((prev) => ({
-          ...prev,
-          likes: updatedSnippet.likes,
-        }));
-      }
-
-      console.log(updatedSnippet.message);
-    } catch (err) {
-      console.error("like error:", err);
+    // 🚨 If not logged in
+    if (!token || !userId) {
+      alert("Please log in to like snippets!");
+      return;
     }
-  };
+
+    // 💨 Optimistic UI update for instant feedback
+    setPublicSnippets((prev) =>
+      prev.map((s) => {
+        if (s._id !== id) return s;
+
+        const isLiked = s.likes?.some((like) => like.userId === userId);
+        const updatedLikes = isLiked
+          ? s.likes.filter((like) => like.userId !== userId)
+          : [...(s.likes || []), { userId, date: new Date() }];
+
+        return {
+          ...s,
+          likes: updatedLikes,
+          isLikedByUser: !isLiked,
+          animateLike: !isLiked, // trigger 💖 burst
+        };
+      })
+    );
+
+    // ⚙️ Sync with backend
+    const res = await axios.post(
+      `${API}/api/snippets/${id}/like`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const updatedSnippet = res.data;
+
+    // 🧩 Merge the server-confirmed state
+    const updateLists = (setFn) =>
+      setFn((prev) =>
+        prev.map((s) =>
+          s._id === id
+            ? {
+                ...s,
+                likes: updatedSnippet.likes,
+                isLikedByUser: updatedSnippet.message?.includes("Liked"),
+                animateLike: false,
+              }
+            : s
+        )
+      );
+
+    updateLists(setPublicSnippets);
+    updateLists(setUserSnippets);
+
+    if (selectedSnippet && selectedSnippet._id === id) {
+      setSelectedSnippet((prev) => ({
+        ...prev,
+        likes: updatedSnippet.likes,
+        isLikedByUser: updatedSnippet.message?.includes("Liked"),
+        animateLike: false,
+      }));
+    }
+
+
+  } catch (err) {
+    console.error("❌ like error:", err);
+
+    if (err.response?.status === 500) {
+      alert("Server error while liking. Please try again later.");
+    } else if (err.response?.status === 401) {
+      alert("Session expired. Please log in again.");
+    } else {
+      alert("Network issue. Please check your connection.");
+    }
+  }
+};
+
+
+
 
   const handleComment = async (id, text) => {
     try {
