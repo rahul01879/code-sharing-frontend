@@ -69,7 +69,6 @@ import {
   Compass,
   Download,
   Edit3,
-  
 } from "lucide-react";
 
 import "../App.css";
@@ -997,137 +996,180 @@ function SnippetModal({
                 </code>
               </pre>
             </div>
-
-{/* ⚙️ MODERN ACTION BAR */}
-<div className="mt-6 border-t border-gray-800 pt-5">
-  <h4 className="text-lg font-semibold text-gray-300 mb-4 flex items-center gap-2">
-    <span className="text-blue-400">⚙</span> Actions
-  </h4>
-
-  <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4">
-    <button
-  onClick={() => onLike?.(snippet._id)}
-  className={`relative flex flex-col items-center gap-1 px-4 py-3 rounded-xl transition-all
-    ${snippet.isLikedByUser
-      ? "bg-pink-600 text-white scale-105 shadow-pink-500/30"
-      : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105"}
-  `}
->
-  {/* ❤️ Heart Icon with Burst */}
-  <span
-    className={`text-xl transition-transform duration-300 ${
-      snippet.animateLike ? "scale-150" : "scale-100"
-    }`}
-    onAnimationEnd={() => (snippet.animateLike = false)}
-  >
-    {snippet.isLikedByUser ? "💖" : "🤍"}
-  </span>
-  <span className="text-xs">
-    {snippet.likes?.length || 0} {snippet.likes?.length === 1 ? "Like" : "Likes"}
-  </span>
-</button>
-
-
-    {/* ⬇ Download */}
-    <button
-      onClick={handleDownload}
-      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/80 border border-gray-700 
-      text-gray-300 hover:text-blue-400 hover:border-blue-500 hover:bg-gray-800 transition-all 
-      duration-300 shadow-sm hover:shadow-blue-500/10"
-    >
-      <Download size={16} className="text-gray-400" />
-      <span className="text-sm">Download</span>
-    </button>
-
-    {/* ✏ Edit */}
-    <button
-      onClick={() => setIsEditing(true)}
-      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/80 border border-gray-700 
-      text-gray-300 hover:text-blue-400 hover:border-blue-500 hover:bg-gray-800 transition-all 
-      duration-300 shadow-sm hover:shadow-blue-500/10"
-    >
-      <Edit3 size={16} className="text-gray-400" />
-      <span className="text-sm">Edit</span>
-    </button>
-
-    {/* 🗑 Delete */}
-    {onDelete && (
-      <button
-        onClick={() => onDelete(snippet._id)}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/80 border border-gray-700 
-        text-gray-300 hover:text-red-400 hover:border-red-500 hover:bg-gray-800 transition-all 
-        duration-300 shadow-sm hover:shadow-red-500/10"
-      >
-        <Trash2 size={16} className="text-gray-400" />
-        <span className="text-sm">Delete</span>
-      </button>
-    )}
-
-    {/* 🔄 GitHub Sync */}
-    <button
-      onClick={() => onSyncGithub(snippet._id)}
-      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/80 border border-gray-700 
-      text-gray-300 hover:text-blue-400 hover:border-blue-500 hover:bg-gray-800 transition-all 
-      duration-300 shadow-sm hover:shadow-blue-500/10"
-    >
-      <Github size={16} className="text-gray-400" />
-      <span className="text-sm">Sync GitHub</span>
-    </button>
-
-    {/* 📂 Collection */}
-    <div className="relative">
-      <button
-        onClick={() => setShowCollections(!showCollections)}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/80 border border-gray-700 
-        text-gray-300 hover:text-blue-400 hover:border-blue-500 hover:bg-gray-800 transition-all 
-        duration-300 shadow-sm hover:shadow-blue-500/10"
-      >
-        <Folder size={16} className="text-gray-400" />
-        <span className="text-sm">Collection</span>
-      </button>
-
-      {showCollections && (
-        <div className="absolute right-0 mt-3 bg-gray-900 border border-gray-700 rounded-xl shadow-xl p-3 w-56 z-10 animate-fade-in">
-          {collections.length > 0 ? (
-            collections.map((c) => (
+            {/* ⚙️ MODERN ACTION BAR — PREMIUM STYLE */}
+            <div className="mt-6 flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3">
+              {/* ❤️ Like Button */}
               <button
-                key={c._id}
-                onClick={() => handleAddToCollection(c._id)}
-                className="block w-full text-left px-3 py-2 text-sm text-gray-200 
-                hover:bg-gray-800 hover:text-blue-400 rounded-lg transition-all"
+                onClick={() => onLike?.(snippet._id)}
+                className={`group relative flex items-center justify-center p-2.5 rounded-md backdrop-blur-sm 
+      transition-all duration-300 shadow-sm
+      ${
+        snippet.isLikedByUser
+          ? "text-pink-500 bg-pink-500/10 hover:bg-pink-500/20 scale-105"
+          : "text-gray-400 hover:text-white hover:bg-gray-800/50"
+      }
+    `}
               >
-                {c.name}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.8}
+                  stroke={snippet.isLikedByUser ? "none" : "currentColor"}
+                  fill={snippet.isLikedByUser ? "#ec4899" : "none"} // <-- 🔥 full pink fill when liked
+                  className={`w-6 h-6 transition-all duration-300 ease-in-out drop-shadow-md
+        ${
+          snippet.isLikedByUser ? "animate-likePulse" : "group-hover:scale-110"
+        }`}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 
+           4.5 0 116.364 6.364L12 21.364l-7.682-8.682a4.5 
+           4.5 0 010-6.364z"
+                  />
+                </svg>
+
+                {/* Like Count */}
+                <span className="absolute -bottom-5 text-[11px] text-gray-500 group-hover:text-pink-400 transition-all">
+                  {snippet.likes?.length || 0}
+                </span>
+
+                {/* Tooltip */}
+                <span
+                  className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900/90 text-gray-200 rounded-md 
+      opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none shadow-md"
+                >
+                  {snippet.isLikedByUser ? "Unlike" : "Like"}
+                </span>
               </button>
-            ))
-          ) : (
-            <p className="text-gray-500 text-sm italic">No collections yet</p>
-          )}
 
-          {/* ➕ Create new collection */}
-          <div className="mt-3 border-t border-gray-700 pt-2">
-            <input
-              type="text"
-              placeholder="New collection..."
-              value={newCollection}
-              onChange={(e) => setNewCollection(e.target.value)}
-              className="w-full px-2 py-1 bg-gray-800 text-white rounded-lg text-sm 
-              border border-gray-700 focus:border-blue-500 focus:ring-0"
-            />
-            <button
-              onClick={handleCreateCollection}
-              className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm 
-              py-1.5 rounded-lg transition-all font-medium"
-            >
-              + Create
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-</div>
+              {/* ⬇ Download */}
+              <button
+                onClick={handleDownload}
+                className="group relative flex items-center justify-center p-2.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-800/50 transition-all duration-300"
+              >
+                <Download
+                  size={18}
+                  className="transition-transform group-hover:scale-110"
+                />
+                <span
+                  className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900/90 text-gray-200 rounded-md 
+      opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none shadow-md"
+                >
+                  Download
+                </span>
+              </button>
 
+              {/* ✏ Edit */}
+              <button
+                onClick={() => setIsEditing(true)}
+                className="group relative flex items-center justify-center p-2.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-800/50 transition-all duration-300"
+              >
+                <Edit3
+                  size={18}
+                  className="transition-transform group-hover:scale-110"
+                />
+                <span
+                  className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900/90 text-gray-200 rounded-md 
+      opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none shadow-md"
+                >
+                  Edit
+                </span>
+              </button>
 
+              {/* 🗑 Delete */}
+              {onDelete && (
+                <button
+                  onClick={() => onDelete(snippet._id)}
+                  className="group relative flex items-center justify-center p-2.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-gray-800/50 transition-all duration-300"
+                >
+                  <Trash2
+                    size={18}
+                    className="transition-transform group-hover:scale-110"
+                  />
+                  <span
+                    className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900/90 text-gray-200 rounded-md 
+        opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none shadow-md"
+                  >
+                    Delete
+                  </span>
+                </button>
+              )}
+
+              {/* 🔄 GitHub Sync */}
+              <button
+                onClick={() => onSyncGithub(snippet._id)}
+                className="group relative flex items-center justify-center p-2.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-800/50 transition-all duration-300"
+              >
+                <Github
+                  size={18}
+                  className="transition-transform group-hover:scale-110"
+                />
+                <span
+                  className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900/90 text-gray-200 rounded-md 
+      opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none shadow-md"
+                >
+                  Sync GitHub
+                </span>
+              </button>
+
+              {/* 📂 Collection Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowCollections(!showCollections)}
+                  className="group relative flex items-center justify-center p-2.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-800/50 transition-all duration-300"
+                >
+                  <Folder
+                    size={18}
+                    className="transition-transform group-hover:scale-110"
+                  />
+                  <span
+                    className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900/90 text-gray-200 rounded-md 
+        opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none shadow-md"
+                  >
+                    Add to Collection
+                  </span>
+                </button>
+
+                {showCollections && (
+                  <div className="absolute right-0 mt-2 bg-[#0d1117] border border-gray-800 shadow-xl rounded-lg p-2 w-56 z-10 animate-fade-in">
+                    {collections.length > 0 ? (
+                      collections.map((c) => (
+                        <button
+                          key={c._id}
+                          onClick={() => handleAddToCollection(c._id)}
+                          className="block w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-800/60 rounded-md transition-all"
+                        >
+                          {c.name}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-sm italic px-3 py-2">
+                        No collections yet
+                      </p>
+                    )}
+
+                    {/* ➕ Create new collection */}
+                    <div className="mt-2 border-t border-gray-800 pt-2">
+                      <input
+                        type="text"
+                        placeholder="New collection..."
+                        value={newCollection}
+                        onChange={(e) => setNewCollection(e.target.value)}
+                        className="w-full px-2 py-1.5 bg-gray-900 text-white rounded-md text-sm border border-gray-800 focus:border-blue-500 focus:ring-0 outline-none"
+                      />
+                      <button
+                        onClick={handleCreateCollection}
+                        className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm py-1.5 rounded-md transition-all"
+                      >
+                        + Create
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* 💬 COMMENTS SECTION */}
             <div className="mt-6 text-sm text-gray-300">
@@ -1560,14 +1602,24 @@ function Profile() {
       if (profileRes.ok) {
         setUser(profileData.user);
         setEditedProfile(profileData.user);
-        setTechStack(profileData.user.techStack ? profileData.user.techStack.split(",") : []);
+        setTechStack(
+          profileData.user.techStack
+            ? profileData.user.techStack.split(",")
+            : []
+        );
       }
 
       // 🧩 Snippets
       if (snippetsRes.ok) {
         setRecentSnippets(snippetsData.slice(0, 5));
-        const totalLikes = snippetsData.reduce((sum, s) => sum + (s.likes?.length || 0), 0);
-        const totalViews = snippetsData.reduce((sum, s) => sum + (s.views || 0), 0);
+        const totalLikes = snippetsData.reduce(
+          (sum, s) => sum + (s.likes?.length || 0),
+          0
+        );
+        const totalViews = snippetsData.reduce(
+          (sum, s) => sum + (s.views || 0),
+          0
+        );
         setInsights({
           totalSnippets: snippetsData.length,
           totalLikes,
@@ -1592,7 +1644,6 @@ function Profile() {
       // 🕓 Activity
       if (activityRes.ok) setActivity(activityData);
       else setActivity([]);
-
     } catch (err) {
       console.error("Dashboard fetch error:", err);
       setError("Failed to load profile data.");
@@ -1625,7 +1676,8 @@ function Profile() {
 
   // ✅ Connect GitHub
   const handleConnectGithub = async () => {
-    if (!githubToken.trim()) return alert("Enter your GitHub Personal Access Token");
+    if (!githubToken.trim())
+      return alert("Enter your GitHub Personal Access Token");
     const appToken = localStorage.getItem("token");
     try {
       const verify = await fetch("https://api.github.com/user", {
@@ -1691,7 +1743,8 @@ function Profile() {
       e.target.value = "";
     }
   };
-  const removeTech = (tech) => setTechStack(techStack.filter((t) => t !== tech));
+  const removeTech = (tech) =>
+    setTechStack(techStack.filter((t) => t !== tech));
 
   // ✅ Save profile
   const handleSaveProfile = async () => {
@@ -1802,7 +1855,9 @@ function Profile() {
 
           {/* Tech Stack */}
           <div className="bg-[#161b22] p-5 rounded-2xl border border-gray-800">
-            <h3 className="text-lg font-semibold text-blue-400 mb-3">💻 Tech Stack</h3>
+            <h3 className="text-lg font-semibold text-blue-400 mb-3">
+              💻 Tech Stack
+            </h3>
             {isEditing ? (
               <>
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -1873,11 +1928,13 @@ function Profile() {
             </div>
           </div>
 
- {/* 🐙 GitHub Integration */}
+          {/* 🐙 GitHub Integration */}
           <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800">
             <div className="flex items-center gap-3 mb-4">
               <FaGithub className="text-white text-2xl" />
-              <h3 className="text-lg font-semibold text-white">GitHub Integration</h3>
+              <h3 className="text-lg font-semibold text-white">
+                GitHub Integration
+              </h3>
             </div>
 
             {githubConnected && githubProfile ? (
@@ -2000,7 +2057,9 @@ function Profile() {
                           : a.type === "deleted"
                           ? "deleted a snippet"
                           : "liked a snippet"}{" "}
-                        <span className="text-blue-400">"{a.snippetTitle}"</span>
+                        <span className="text-blue-400">
+                          "{a.snippetTitle}"
+                        </span>
                       </p>
                       <p className="text-xs text-gray-500 flex items-center gap-1">
                         <FaClock />{" "}
@@ -2023,8 +2082,6 @@ function Profile() {
     </div>
   );
 }
-
-
 
 function Footer() {
   return (
@@ -2331,100 +2388,93 @@ export default function CodeSharingPage({ onLogout }) {
     setSelectedSnippet(updatedSnippet);
   };
 
-const handleLike = async (id) => {
-  try {
-    // 🔹 Fetch token & user from storage
-    const token = localStorage.getItem("token");
-    const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    let userId = userData._id || userData.id;
-if (!userId && token) {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    userId = payload.id; // 👈 assuming your JWT payload uses "id"
-  } catch (err) {
-    console.warn("JWT decode failed:", err);
-  }
-}
+  const handleLike = async (id) => {
+    try {
+      // 🔹 Fetch token & user from storage
+      const token = localStorage.getItem("token");
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      let userId = userData._id || userData.id;
+      if (!userId && token) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          userId = payload.id; // 👈 assuming your JWT payload uses "id"
+        } catch (err) {
+          console.warn("JWT decode failed:", err);
+        }
+      }
 
+      // 🚨 If not logged in
+      if (!token || !userId) {
+        alert("Please log in to like snippets!");
+        return;
+      }
 
+      // 💨 Optimistic UI update for instant feedback
+      setPublicSnippets((prev) =>
+        prev.map((s) => {
+          if (s._id !== id) return s;
 
-    // 🚨 If not logged in
-    if (!token || !userId) {
-      alert("Please log in to like snippets!");
-      return;
-    }
+          const isLiked = s.likes?.some((like) => like.userId === userId);
+          const updatedLikes = isLiked
+            ? s.likes.filter((like) => like.userId !== userId)
+            : [...(s.likes || []), { userId, date: new Date() }];
 
-    // 💨 Optimistic UI update for instant feedback
-    setPublicSnippets((prev) =>
-      prev.map((s) => {
-        if (s._id !== id) return s;
-
-        const isLiked = s.likes?.some((like) => like.userId === userId);
-        const updatedLikes = isLiked
-          ? s.likes.filter((like) => like.userId !== userId)
-          : [...(s.likes || []), { userId, date: new Date() }];
-
-        return {
-          ...s,
-          likes: updatedLikes,
-          isLikedByUser: !isLiked,
-          animateLike: !isLiked, // trigger 💖 burst
-        };
-      })
-    );
-
-    // ⚙️ Sync with backend
-    const res = await axios.post(
-      `${API}/api/snippets/${id}/like`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    const updatedSnippet = res.data;
-
-    // 🧩 Merge the server-confirmed state
-    const updateLists = (setFn) =>
-      setFn((prev) =>
-        prev.map((s) =>
-          s._id === id
-            ? {
-                ...s,
-                likes: updatedSnippet.likes,
-                isLikedByUser: updatedSnippet.message?.includes("Liked"),
-                animateLike: false,
-              }
-            : s
-        )
+          return {
+            ...s,
+            likes: updatedLikes,
+            isLikedByUser: !isLiked,
+            animateLike: !isLiked, // trigger 💖 burst
+          };
+        })
       );
 
-    updateLists(setPublicSnippets);
-    updateLists(setUserSnippets);
+      // ⚙️ Sync with backend
+      const res = await axios.post(
+        `${API}/api/snippets/${id}/like`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    if (selectedSnippet && selectedSnippet._id === id) {
-      setSelectedSnippet((prev) => ({
-        ...prev,
-        likes: updatedSnippet.likes,
-        isLikedByUser: updatedSnippet.message?.includes("Liked"),
-        animateLike: false,
-      }));
+      const updatedSnippet = res.data;
+
+      // 🧩 Merge the server-confirmed state
+      const updateLists = (setFn) =>
+        setFn((prev) =>
+          prev.map((s) =>
+            s._id === id
+              ? {
+                  ...s,
+                  likes: updatedSnippet.likes,
+                  isLikedByUser: updatedSnippet.message?.includes("Liked"),
+                  animateLike: false,
+                }
+              : s
+          )
+        );
+
+      updateLists(setPublicSnippets);
+      updateLists(setUserSnippets);
+
+      if (selectedSnippet && selectedSnippet._id === id) {
+        setSelectedSnippet((prev) => ({
+          ...prev,
+          likes: updatedSnippet.likes,
+          isLikedByUser: updatedSnippet.message?.includes("Liked"),
+          animateLike: false,
+        }));
+      }
+    } catch (err) {
+      console.error("❌ like error:", err);
+
+      if (err.response?.status === 500) {
+        alert("Server error while liking. Please try again later.");
+      } else if (err.response?.status === 401) {
+        alert("Session expired. Please log in again.");
+      } else {
+        alert("Network issue. Please check your connection.");
+      }
     }
-
-
-  } catch (err) {
-    console.error("❌ like error:", err);
-
-    if (err.response?.status === 500) {
-      alert("Server error while liking. Please try again later.");
-    } else if (err.response?.status === 401) {
-      alert("Session expired. Please log in again.");
-    } else {
-      alert("Network issue. Please check your connection.");
-    }
-  }
-};
-
-
-
+  };
 
   const handleComment = async (id, text) => {
     try {
