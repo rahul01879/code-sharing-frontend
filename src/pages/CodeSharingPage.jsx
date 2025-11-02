@@ -605,7 +605,8 @@ function SnippetGrid({ snippets, onSelect, onTagClick }) {
             key={s._id || s.id}
             snippet={s}
             onSelect={onSelect}
-            onTagClick={onTagClick} // ✅ FIXED
+            onTagClick={onTagClick} 
+            
           />
         ))}
       </div>
@@ -658,6 +659,7 @@ function SnippetModal({
   onComment,
   onSyncGithub,
   onTagClick,
+  onFork,
 }) {
   const codeRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -894,6 +896,20 @@ function SnippetModal({
               }
               className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
             />
+
+            {snippet.forkedFrom && (
+            <p className="text-xs text-gray-400 mt-1">
+              Forked from{" "}
+              <span className="text-blue-400 font-medium">
+                {snippet.forkedFrom.title || "Unnamed Snippet"}
+              </span>{" "}
+              by{" "}
+              <span className="text-pink-400 font-medium">
+                @{snippet.forkedFrom.author || "Unknown"}
+              </span>
+            </p>
+          )}
+
             <textarea
               rows="3"
               placeholder="Description"
@@ -1113,6 +1129,21 @@ function SnippetModal({
                   Sync GitHub
                 </span>
               </button>
+
+              {/* 🔱 Fork Snippet */}
+                <button
+                  onClick={() => onFork?.(snippet._id)}
+
+                  className="group relative flex items-center justify-center p-2.5 rounded-md text-gray-400 hover:text-yellow-400 hover:bg-gray-800/50 transition-all duration-300"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor" className="w-5 h-5 transition-transform group-hover:scale-110">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6m0 0l6-6m-6 6V3" />
+                  </svg>
+                  <span className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900 text-gray-300 rounded-md opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none">
+                    Fork Snippet
+                  </span>
+                </button>
+
 
               {/* 📂 Collection Dropdown */}
               <div className="relative">
@@ -2476,6 +2507,36 @@ export default function CodeSharingPage({ onLogout }) {
     }
   };
 
+const handleFork = async (snippetId) => {
+  const token = localStorage.getItem("token");
+  if (!token) return alert("⚠️ Please log in to fork snippets.");
+
+  try {
+    const res = await fetch(`${API}/api/snippets/${snippetId}/fork`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Fork failed");
+
+    // ✅ Add new snippet to user's list
+    setUserSnippets((prev) => [data.snippet, ...prev]);
+
+    // 🎉 Success feedback (toast or alert)
+    alert(`✅ Forked "${data.snippet.title}" successfully!`);
+  } catch (err) {
+    console.error("❌ Fork error:", err);
+    alert(err.message || "Error forking snippet");
+  }
+};
+
+
+
+
   const handleComment = async (id, text) => {
     try {
       const token = localStorage.getItem("token");
@@ -2919,11 +2980,12 @@ export default function CodeSharingPage({ onLogout }) {
           onClose={() => setSelectedSnippet(null)}
           onDelete={handleDeleteSnippet}
           onSnippetUpdate={handleSnippetUpdate}
-          onLike={handleLike}
+          onLike={handleLike} 
           onComment={handleComment}
           onSyncGithub={handleSyncGithub}
           onTagClick={(tag) => fetchSnippetsByTag(tag)} // ✅ fixed
           fetchExploreSnippets={fetchExploreSnippets}
+          onFork={handleFork}
         />
       </main>
       <Footer />
