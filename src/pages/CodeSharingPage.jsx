@@ -1,2382 +1,79 @@
-// src/pages/CodeSharingPage.jsx
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import Prism from "prismjs";
-import { motion, AnimatePresence } from "framer-motion";
-// Prism styles + line numbers plugin
-import "prismjs/themes/prism-tomorrow.css";
-import "prismjs/plugins/line-numbers/prism-line-numbers.css";
-import "prismjs/plugins/line-numbers/prism-line-numbers.js";
 
-// Pre-import languages to avoid dynamic import issues
-import "prismjs/components/prism-javascript";
-import "prismjs/components/prism-css";
-import "prismjs/components/prism-markup"; // html
-import "prismjs/components/prism-markup-templating";
-import "prismjs/components/prism-php";
-import "prismjs/components/prism-python";
-import "prismjs/components/prism-c";
-import "prismjs/components/prism-cpp";
-import "prismjs/components/prism-java";
-import "prismjs/components/prism-ruby";
-import {
-  FaUser,
-  FaGithub,
-  FaCode,
-  FaCalendarAlt,
-  FaExternalLinkAlt,
-  FaLinkedin,
-  FaTwitter,
-  FaChartLine,
-  FaCrown,
-  FaSun,
-  FaMoon,
-  FaEdit,
-  FaUpload,
-  FaSave,
-  FaTimes,
-  FaCodeBranch,
-  FaHeart,
-  FaEye,
-  FaClock,
-} from "react-icons/fa";
-
-import {
-  Home,
-  PlusSquare,
-  FileText,
-  User,
-  LogOut,
-  Shield,
-  FolderOpen,
-  Edit2,
-  Trash2,
-  ArrowLeft,
-  Github,
-  Twitter,
-  Linkedin,
-  Mail,
-  Code2,
-  Menu,
-  X,
-  Search,
-  Folder,
-  Eye,
-  Heart,
-  MessageSquare,
-  MessageCircle,
-  Compass,
-  Download,
-  Edit3,
-} from "lucide-react";
-
-import "../App.css";
-import AdminLoginPage from "./AdminLoginPage";
-import AdminDashboardPage from "./AdminDashboardPage";
+import Header from "../components/codex/Header";
+import SnippetGrid from "../components/codex/SnippetGrid";
+import SnippetModal from "../components/codex/SnippetModal";
+import AddSnippetForm from "../components/codex/AddSnippetForm";
+import CollectionsPage from "../components/codex/CollectionsPage";
+import CollectionDetailPage from "../components/codex/CollectionDetailPage";
+import Profile from "../components/codex/Profile";
+import Footer from "../components/codex/Footer";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
-// ---------------- helpers ----------------
-const getBadgeColor = (lang) => {
-  switch ((lang || "").toLowerCase()) {
-    case "javascript":
-      return "bg-yellow-500/20 text-yellow-300";
-    case "css":
-      return "bg-blue-500/20 text-blue-300";
-    case "html":
-    case "markup":
-      return "bg-orange-500/20 text-orange-300";
-    case "php":
-      return "bg-purple-500/20 text-purple-300";
-    case "python":
-      return "bg-green-500/20 text-green-300";
-    case "c":
-    case "cpp":
-      return "bg-red-500/20 text-red-300";
-    case "java":
-      return "bg-amber-500/20 text-amber-300";
-    case "ruby":
-      return "bg-pink-500/20 text-pink-300";
-    default:
-      return "bg-gray-600/30 text-gray-300";
-  }
-};
-
-const formatDate = (d) => {
-  if (!d) return "—";
-  try {
-    return new Date(d).toLocaleDateString();
-  } catch {
-    return "—";
-  }
-};
-
-function timeAgo(date) {
-  const now = new Date();
-  const seconds = Math.floor((now - new Date(date)) / 1000);
-
-  const intervals = {
-    year: 31536000,
-    month: 2592000,
-    week: 604800,
-    day: 86400,
-    hour: 3600,
-    minute: 60,
-    second: 1,
-  };
-
-  for (const [unit, value] of Object.entries(intervals)) {
-    const count = Math.floor(seconds / value);
-    if (count > 0) {
-      return `${count}${unit[0]} ago`; // e.g. "2d ago"
-    }
-  }
-  return "just now";
-}
-
-// ---------------- Header ----------------
-function debounce(func, delay) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => func(...args), delay);
-  };
-}
-
-function Header({
-  current,
-  onNavigate,
-  onLogout,
-  fetchSnippetsByTag,
-  fetchExploreSnippets,
-}) {
-  const isAdmin = localStorage.getItem("isAdmin") === "true";
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
-  const [activeFilters, setActiveFilters] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const navItems = [
-    { id: "home", label: "Home", icon: <Home size={18} /> },
-    { id: "add", label: "Add Snippet", icon: <PlusSquare size={18} /> },
-    { id: "my-snippets", label: "My Snippets", icon: <FileText size={18} /> },
-    { id: "collections", label: "Collections", icon: <Folder size={18} /> },
-    { id: "profile", label: "Profile", icon: <User size={18} /> },
-    { id: "explore", label: "Explore", icon: <Compass size={18} /> },
-  ];
-
-  const handleNavigate = (id, value) => {
-    onNavigate?.(id, value);
-    setMenuOpen(false);
-    setShowSearch(false);
-  };
-
-  // ✅ Combine filter results dynamically
-  const applyFilters = async (filters) => {
-    if (!filters || filters.length === 0) {
-      handleNavigate("home");
-      return;
-    }
-    setLoading(true);
-    try {
-      const allResults = [];
-      for (const lang of filters) {
-        const data = await fetchSnippetsByTag(lang);
-        if (data && Array.isArray(data)) allResults.push(...data);
-      }
-      const uniqueResults = Array.from(
-        new Map(allResults.map((s) => [s._id, s])).values()
-      );
-      onNavigate("search", uniqueResults);
-    } catch (err) {
-      console.error("Filter apply error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFilterClick = async (lang) => {
-    const updated = activeFilters.includes(lang)
-      ? activeFilters.filter((f) => f !== lang)
-      : [...activeFilters, lang];
-    setActiveFilters(updated);
-    await applyFilters(updated);
-  };
-
-  const removeFilter = async (lang) => {
-    const updated = activeFilters.filter((f) => f !== lang);
-    setActiveFilters(updated);
-    await applyFilters(updated);
-  };
-
-  const clearAllFilters = async () => {
-    setActiveFilters([]);
-    handleNavigate("home");
-  };
-
-  // ✅ Debounced search (for titles, languages, author, etc.)
-  const handleSearch = useCallback(
-    debounce((query) => {
-      if (!query.trim()) {
-        onNavigate("home");
-        return;
-      }
-      onNavigate("search", query); // parent handles fetching
-    }, 400),
-    [onNavigate]
-  );
-
-  const filterColors = [
-    "from-blue-500 to-cyan-500",
-    "from-purple-500 to-pink-500",
-    "from-green-500 to-teal-500",
-    "from-orange-500 to-yellow-500",
-    "from-rose-500 to-pink-500",
-    "from-indigo-500 to-purple-500",
-  ];
-
-  return (
-    <header className="sticky top-0 z-50 w-full bg-gray-950/90 backdrop-blur-md border-b border-gray-800 shadow-md">
-      {/* --- Top Section --- */}
-      <div className="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4">
-        {/* Logo */}
-        <button
-          onClick={() => handleNavigate("home")}
-          className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 tracking-tight hover:scale-105 transition-transform"
-        >
-          CODE<span className="text-gray-300">X</span>
-        </button>
-
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-3 lg:gap-4">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                handleNavigate(item.id);
-
-                // ✅ Only trigger Explore when available
-                if (item.id === "explore") {
-                  fetchExploreSnippets?.(); // Safe optional call
-                }
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                current === item.id
-                  ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
-                  : "text-gray-300 hover:text-white hover:bg-gray-800/70 hover:scale-105"
-              }`}
-            >
-              {item.icon}
-              <span className="hidden sm:inline">{item.label}</span>
-            </button>
-          ))}
-
-          {isAdmin && (
-            <Link
-              to="/admin/dashboard"
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-300 hover:bg-gray-800/70 hover:text-white transition-all"
-            >
-              <Shield size={18} /> Admin
-            </Link>
-          )}
-
-          {/* Search */}
-          <div className="relative ml-3">
-            <Search
-              size={16}
-              className="absolute left-3 top-2.5 text-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Search snippets by title, author, or language..."
-              className="pl-9 pr-4 py-2 rounded-full bg-gray-800/80 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 lg:w-64 transition-all"
-              value={search}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSearch(value);
-                handleSearch(value);
-              }}
-            />
-          </div>
-
-          {/* Logout */}
-          {onLogout && (
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-2 ml-3 px-4 py-2 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium text-sm shadow-md hover:scale-105 transition-all"
-            >
-              <LogOut size={18} /> Logout
-            </button>
-          )}
-        </nav>
-
-        {/* Mobile Controls */}
-        <div className="flex items-center gap-3 md:hidden">
-          <button
-            onClick={() => setShowSearch((prev) => !prev)}
-            className="text-gray-300 hover:text-white p-1.5 rounded-full transition"
-          >
-            <Search size={22} />
-          </button>
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="text-gray-300 hover:text-white p-1.5 rounded-full transition"
-          >
-            {menuOpen ? <X size={26} /> : <Menu size={26} />}
-          </button>
-        </div>
-      </div>
-
-      {/* --- Mobile Search --- */}
-      {showSearch && (
-        <div className="md:hidden px-4 pb-3 animate-fade-in">
-          <div className="relative">
-            <Search
-              size={18}
-              className="absolute left-3 top-2.5 text-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Search snippets..."
-              className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={search}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSearch(value);
-                handleSearch(value);
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* --- Mobile Menu --- */}
-      {menuOpen && (
-        <div className="md:hidden bg-gray-900 border-t border-gray-800 animate-slide-down">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                handleNavigate(item.id);
-
-                // ✅ Only trigger Explore data load when "Explore" is clicked
-                if (item.id === "explore") {
-                  fetchExploreSnippets?.(); // safe optional call
-                }
-              }}
-              className={`w-full flex items-center gap-2 px-6 py-3 text-sm font-medium text-left transition-all duration-300 ${
-                current === item.id
-                  ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 shadow-md"
-                  : "text-gray-300 hover:bg-gray-800 hover:text-white"
-              }`}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
-
-          {onLogout && (
-            <button
-              onClick={onLogout}
-              className="w-full flex items-center gap-2 px-6 py-3 text-sm text-red-400 hover:bg-gray-800 transition"
-            >
-              <LogOut size={18} /> Logout
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* --- Modern Quick Filters --- */}
-      {(current === "home" || current === "search") && (
-        <div className="border-t border-gray-800 bg-gray-950/80 backdrop-blur-sm">
-          <div className="flex items-center overflow-x-auto gap-3 px-4 sm:px-8 py-3 scrollbar-hide">
-            <span className="text-sm text-gray-400 flex-shrink-0 font-medium">
-              Quick filters:
-            </span>
-            {[
-              "javascript",
-              "python",
-              "java",
-              "php",
-              "typescript",
-              "go",
-              "ruby",
-              "csharp",
-            ].map((lang, i) => (
-              <button
-                key={lang}
-                onClick={() => handleFilterClick(lang)}
-                className={`flex-shrink-0 px-4 py-1.5 text-xs rounded-full font-semibold transition-all duration-300 ${
-                  activeFilters.includes(lang)
-                    ? `bg-gradient-to-r ${
-                        filterColors[i % filterColors.length]
-                      } text-white shadow-md scale-105`
-                    : "bg-gray-800/70 border border-gray-700 text-gray-300 hover:bg-blue-600/30 hover:text-blue-300"
-                }`}
-              >
-                {lang}
-              </button>
-            ))}
-            {loading && (
-              <span className="text-sm text-gray-400 ml-2 animate-pulse">
-                Loading…
-              </span>
-            )}
-            {activeFilters.length > 0 && (
-              <button
-                onClick={clearAllFilters}
-                className="ml-auto text-xs text-red-400 hover:underline"
-              >
-                Clear all
-              </button>
-            )}
-          </div>
-
-          {/* Active Filter Chips */}
-          {activeFilters.length > 0 && (
-            <div className="flex flex-wrap gap-2 px-4 sm:px-8 pb-3">
-              {activeFilters.map((f) => (
-                <span
-                  key={f}
-                  className="flex items-center gap-2 px-3 py-1 text-xs rounded-full border border-blue-500 bg-gray-800 text-blue-300 shadow-sm transition-all"
-                >
-                  {f}
-                  <button
-                    onClick={() => removeFilter(f)}
-                    className="text-gray-400 hover:text-red-400 transition ml-1"
-                  >
-                    ✕
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </header>
-  );
-}
-
-function SnippetCard({ snippet, onSelect, onTagClick }) {
-  return (
-    <div
-      onClick={() => onSelect(snippet._id)}
-      className="group w-full bg-gradient-to-b from-[#1a1a2f]/90 to-[#0f0f1a]/95 
-                 border border-gray-800 rounded-2xl p-5 sm:p-6 
-                 shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:shadow-[0_0_25px_rgba(59,130,246,0.25)]
-                 transition-all duration-300 ease-out 
-                 hover:-translate-y-[4px] hover:scale-[1.01] cursor-pointer 
-                 overflow-hidden backdrop-blur-md"
-      style={{ overflowWrap: "break-word" }}
-    >
-      {/* --- Header --- */}
-      <div className="flex flex-wrap justify-between items-center mb-3">
-        <h3 className="text-lg sm:text-xl font-semibold text-blue-400 group-hover:text-blue-300 transition-colors duration-300 line-clamp-1">
-          {snippet.title}
-        </h3>
-
-        <span
-          className={`${getBadgeColor(
-            snippet.language
-          )} px-3 py-[3px] rounded-full text-[11px] sm:text-xs font-medium uppercase tracking-wide border border-gray-700/70`}
-        >
-          {snippet.language || "N/A"}
-        </span>
-      </div>
-
-      {/* --- Description --- */}
-      <p className="text-gray-300 text-sm sm:text-base leading-snug mb-3 line-clamp-2">
-        {snippet.description || "No description provided."}
-      </p>
-
-      {/* --- Tags --- */}
-      {snippet.tags?.length > 0 && (
-        <div
-          className="flex flex-wrap gap-1.5 mb-4"
-          onClick={(e) => e.stopPropagation()} // ✅ Prevent card click when tag clicked
-        >
-          {snippet.tags.map((tag, idx) => (
-            <span
-              key={idx}
-              onClick={() => onTagClick?.(tag)} // ✅ Filter by tag
-              className="bg-gray-800/60 text-gray-300 text-[11px] sm:text-xs px-2 py-[2px] rounded-full border border-gray-700/70 hover:bg-blue-500/30 hover:text-blue-300 transition-all cursor-pointer"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* --- Code Preview --- */}
-      <div className="relative bg-[#11111a]/80 border border-gray-800 rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between bg-[#1b1b2f]/80 px-3 py-2 border-b border-gray-800 text-gray-400 text-xs font-mono">
-          <div className="flex items-center gap-2">
-            <FaCode size={12} className="text-blue-400" />
-            <span className="font-medium">{snippet.language || "code"}</span>
-          </div>
-        </div>
-
-        <pre className="max-h-36 overflow-hidden text-[11px] sm:text-xs p-3 font-mono text-gray-200 leading-relaxed">
-          <code
-            className={`language-${(
-              snippet.language || "javascript"
-            ).toLowerCase()}`}
-          >
-            {snippet.code?.length > 200
-              ? snippet.code.slice(0, 200) + "..."
-              : snippet.code}
-          </code>
-        </pre>
-
-        {snippet.code?.length > 200 && (
-          <div className="absolute bottom-0 left-0 w-full h-10 bg-gradient-to-t from-[#0f0f1a]/95 to-transparent pointer-events-none" />
-        )}
-      </div>
-
-      {/* --- Footer (Likes, Comments, Views, Author, Date) --- */}
-      <div className="mt-4 flex flex-wrap justify-between items-center text-gray-400 text-[12px] sm:text-sm">
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
-            <Heart size={14} className="text-pink-500" />
-            {snippet.likes?.length || 0}
-          </span>
-
-          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
-            <MessageSquare size={14} className="text-blue-400" />
-            {snippet.comments?.length || 0}
-          </span>
-
-          <span className="flex items-center gap-1 bg-gray-800/70 px-2 py-[3px] rounded-full border border-gray-700/70">
-            <Eye size={14} className="text-green-400" />
-            {snippet.views || 0}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 text-gray-500">
-          <span className="truncate max-w-[100px] sm:max-w-[150px]">
-            {snippet.author || "Unknown"}
-          </span>
-          <span className="text-gray-600">•</span>
-          <span>{formatDate(snippet.createdAt)}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------- Snippet Grid ----------------
-function SnippetGrid({ snippets, onSelect, onTagClick }) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const snippetsPerPage = 8; // adjust as needed
-
-  if (!snippets || snippets.length === 0) {
-    return (
-      <p className="text-center text-gray-400 text-lg w-full mt-12">
-        No snippets to show.
-      </p>
-    );
-  }
-
-  // Pagination calculations
-  const indexOfLastSnippet = currentPage * snippetsPerPage;
-  const indexOfFirstSnippet = indexOfLastSnippet - snippetsPerPage;
-  const currentSnippets = snippets.slice(
-    indexOfFirstSnippet,
-    indexOfLastSnippet
-  );
-
-  const totalPages = Math.ceil(snippets.length / snippetsPerPage);
-
-  const handlePageChange = (pageNumber) => {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-      window.scrollTo({ top: 0, behavior: "smooth" }); // scroll to top on page change
-    }
-  };
-
-  return (
-    <div className="w-full">
-      {/* Snippet Cards Grid */}
-      <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {currentSnippets.map((s) => (
-          <SnippetCard
-            key={s._id || s.id}
-            snippet={s}
-            onSelect={onSelect}
-            onTagClick={onTagClick} 
-            
-          />
-        ))}
-      </div>
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex flex-wrap justify-center items-center gap-2 mt-8">
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-700 transition"
-          >
-            Prev
-          </button>
-
-          {[...Array(totalPages)].map((_, i) => (
-            <button
-              key={i + 1}
-              onClick={() => handlePageChange(i + 1)}
-              className={`px-4 py-2 rounded-lg transition ${
-                currentPage === i + 1
-                  ? "bg-blue-500 text-white shadow-lg scale-105"
-                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-700 transition"
-          >
-            Next
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------- Snippet Modal ----------------
-function SnippetModal({
-  snippet,
-  onClose,
-  onDelete,
-  onSnippetUpdate,
-  onLike,
-  onComment,
-  onSyncGithub,
-  onTagClick,
-  onFork,
-}) {
-  const codeRef = useRef(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({ ...snippet });
-  const [comment, setComment] = useState("");
-  const [commentLoading, setCommentLoading] = useState(false);
-  const currentUser = JSON.parse(localStorage.getItem("user")); // for delete permissions
-  const [showCollections, setShowCollections] = useState(false);
-  const [collections, setCollections] = useState([]);
-  const [newCollection, setNewCollection] = useState("");
-
-  useEffect(() => {
-    if (!snippet) return;
-    setEditData({ ...snippet });
-
-    // ✅ Record a view only once per user per snippet (safe version)
-    const recordView = async () => {
-      try {
-        // Read local cache safely
-        let viewedSnippets = [];
-        try {
-          viewedSnippets =
-            JSON.parse(localStorage.getItem("viewedSnippets")) || [];
-        } catch {
-          localStorage.removeItem("viewedSnippets"); // reset if broken JSON
-          viewedSnippets = [];
-        }
-
-        // Skip if already viewed
-        if (viewedSnippets.includes(snippet._id)) return;
-
-        // Send view count update
-        const res = await fetch(`${API}/api/snippets/${snippet._id}/view`, {
-          method: "POST",
-        });
-        if (!res.ok) {
-          console.warn("⚠️ View record failed:", res.status);
-          return;
-        }
-
-        // Cache locally so it’s not counted again
-        viewedSnippets.push(snippet._id);
-        localStorage.setItem("viewedSnippets", JSON.stringify(viewedSnippets));
-
-        console.log("✅ View recorded for snippet:", snippet._id);
-      } catch (err) {
-        console.error("Error recording view:", err);
-      }
-    };
-
-    recordView();
-
-    // Highlight code
-    const t = setTimeout(() => {
-      if (codeRef.current) Prism.highlightElement(codeRef.current);
-    }, 20);
-
-    // Prevent background scrolling
-    document.body.style.overflow = "hidden";
-    return () => {
-      clearTimeout(t);
-      document.body.style.overflow = "auto";
-    };
-  }, [snippet]);
-
-  useEffect(() => {
-    if (showCollections) fetchCollections();
-  }, [showCollections]);
-
-  const fetchCollections = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      const res = await fetch(`${API}/api/collections`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setCollections(await res.json());
-    } catch (err) {
-      console.error("fetch collections error:", err);
-    }
-  };
-
-  if (!snippet) return null;
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(snippet.code || "");
-      alert("✅ Code copied to clipboard!");
-    } catch {
-      alert("❌ Copy failed");
-    }
-  };
-
-  const handleDownload = () => {
-    const blob = new Blob([snippet.code || ""], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${snippet.title || "snippet"}.${(
-      snippet.language || "txt"
-    ).toLowerCase()}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch(`${API}/api/snippets/${snippet._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(editData),
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        onSnippetUpdate(updated);
-        setIsEditing(false);
-      } else alert("❌ Failed to update snippet");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleAddToCollection = async (collectionId) => {
-    try {
-      const res = await fetch(
-        `${API}/api/collections/${collectionId}/add-snippet`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({ snippetId: snippet._id }),
-        }
-      );
-
-      if (res.ok) {
-        alert("✅ Snippet added to collection!");
-        setShowCollections(false);
-      } else alert("❌ Failed to add to collection");
-    } catch (err) {
-      console.error("add to collection error:", err);
-    }
-  };
-
-  const handleTagClick = (tag) => {
-    onClose(); // close modal
-    if (onTagClick) onTagClick(tag); // notify parent to filter by tag
-  };
-
-  const handleCreateCollection = async () => {
-    if (!newCollection.trim()) return alert("Enter collection name");
-    try {
-      const res = await fetch(`${API}/api/collections`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ name: newCollection }),
-      });
-      if (res.ok) {
-        setNewCollection("");
-        fetchCollections();
-      } else alert("❌ Failed to create collection");
-    } catch (err) {
-      console.error("create collection error:", err);
-    }
-  };
-
-  const prismLang =
-    (snippet.language || "javascript").toLowerCase() === "html"
-      ? "markup"
-      : (snippet.language || "javascript").toLowerCase();
-
-  return (
-    <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-md flex justify-center items-center z-50 px-2 sm:px-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 rounded-xl shadow-2xl border border-gray-700 w-full max-w-3xl sm:max-w-4xl md:max-w-5xl max-h-[90vh] overflow-y-auto p-4 sm:p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* HEADER */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 border-b border-gray-700 pb-3">
-          <h3 className="text-xl sm:text-2xl font-bold text-blue-400 break-words">
-            {isEditing ? "Edit Snippet" : snippet.title}
-          </h3>
-          {/* Stats */}
-          {!isEditing && (
-            <div className="flex items-center gap-4 text-gray-400 text-sm mt-2">
-              <span className="flex items-center gap-1">
-                <Eye className="text-blue-400" size={14} /> {snippet.views || 0}
-              </span>
-              <span className="flex items-center gap-1">
-                <Heart className="text-pink-500" size={14} />{" "}
-                {snippet.likes?.length || 0}
-              </span>
-              <span className="flex items-center gap-1">
-                <MessageSquare className="text-green-400" size={14} />{" "}
-                {snippet.comments?.length || 0}
-              </span>
-            </div>
-          )}
-
-          <button
-            onClick={onClose}
-            className="self-end sm:self-auto text-red-400 hover:text-red-500 font-bold text-xl"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* EDIT MODE */}
-        {isEditing ? (
-          <form
-            onSubmit={handleEditSubmit}
-            className="flex flex-col gap-3 mt-4 text-sm"
-          >
-            <input
-              type="text"
-              placeholder="Title"
-              value={editData.title}
-              onChange={(e) =>
-                setEditData({ ...editData, title: e.target.value })
-              }
-              className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
-            />
-
-            {snippet.forkedFrom && (
-            <p className="text-xs text-gray-400 mt-1">
-              Forked from{" "}
-              <span className="text-blue-400 font-medium">
-                {snippet.forkedFrom.title || "Unnamed Snippet"}
-              </span>{" "}
-              by{" "}
-              <span className="text-pink-400 font-medium">
-                @{snippet.forkedFrom.author || "Unknown"}
-              </span>
-            </p>
-          )}
-
-            <textarea
-              rows="3"
-              placeholder="Description"
-              value={editData.description}
-              onChange={(e) =>
-                setEditData({ ...editData, description: e.target.value })
-              }
-              className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
-            />
-            <textarea
-              rows="8"
-              placeholder="Code..."
-              value={editData.code}
-              onChange={(e) =>
-                setEditData({ ...editData, code: e.target.value })
-              }
-              className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 font-mono text-sm"
-            />
-            {/* Tags Input */}
-            <input
-              type="text"
-              placeholder="Enter tags (comma separated)"
-              value={editData.tags?.join(", ") || ""}
-              onChange={(e) =>
-                setEditData({
-                  ...editData,
-                  tags: e.target.value
-                    .split(",")
-                    .map((t) => t.trim())
-                    .filter(Boolean),
-                })
-              }
-              className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 text-sm"
-              style={{ marginTop: "4px" }}
-            />
-
-            <div className="flex flex-wrap gap-3 mt-2">
-              <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
-              >
-                💾 Save
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        ) : (
-          <>
-            {/* Description */}
-            <p className="text-sm text-gray-300 mt-2 break-words">
-              {snippet.description}
-            </p>
-
-            {/* TAGS */}
-            {snippet.tags && snippet.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {snippet.tags.map((tag, i) => (
-                  <span
-                    key={i}
-                    onClick={() => handleTagClick(tag)}
-                    className="cursor-pointer text-xs bg-blue-600/20 text-blue-400 px-2 py-1 rounded-md hover:bg-blue-600/40 transition"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* CODE BLOCK */}
-            <div className="mt-4 border border-gray-700 rounded-lg bg-gray-900/80 overflow-hidden">
-              <div className="flex justify-between items-center bg-gray-800/70 px-3 py-2 border-b border-gray-700 text-xs sm:text-sm">
-                <span className="font-semibold text-blue-400 uppercase">
-                  {snippet.language || "Code"}
-                </span>
-                <button
-                  onClick={handleCopy}
-                  className="text-gray-300 hover:text-white flex items-center gap-1 aria-label"
-                >
-                  📋 Copy
-                </button>
-              </div>
-
-              {/* ✅ Responsive Code Area */}
-              <pre className="m-0 overflow-x-auto max-h-[60vh] sm:max-h-[500px] p-2 sm:p-4 text-[11px] sm:text-sm leading-relaxed">
-                <code
-                  ref={codeRef}
-                  className={`language-${prismLang} line-numbers block min-w-full whitespace-pre`}
-                  style={{
-                    fontSize: window.innerWidth < 640 ? "11px" : "14px",
-                    lineHeight: window.innerWidth < 640 ? "1.3" : "1.6",
-                  }}
-                >
-                  {snippet.code}
-                </code>
-              </pre>
-            </div>
-            {/* ⚙️ MODERN ACTION BAR — PREMIUM STYLE */}
-            <div className="mt-6 flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3">
-              {/* ❤️ Like Button */}
-              <button
-                onClick={() => onLike?.(snippet._id)}
-                className={`group relative flex items-center justify-center p-2.5 rounded-md backdrop-blur-sm 
-      transition-all duration-300 shadow-sm
-      ${
-        snippet.isLikedByUser
-          ? "text-pink-500 bg-pink-500/10 hover:bg-pink-500/20 scale-105"
-          : "text-gray-400 hover:text-white hover:bg-gray-800/50"
-      }
-    `}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.8}
-                  stroke={snippet.isLikedByUser ? "none" : "currentColor"}
-                  fill={snippet.isLikedByUser ? "#ec4899" : "none"} // <-- 🔥 full pink fill when liked
-                  className={`w-6 h-6 transition-all duration-300 ease-in-out drop-shadow-md
-        ${
-          snippet.isLikedByUser ? "animate-likePulse" : "group-hover:scale-110"
-        }`}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 
-           4.5 0 116.364 6.364L12 21.364l-7.682-8.682a4.5 
-           4.5 0 010-6.364z"
-                  />
-                </svg>
-
-                {/* Like Count */}
-                <span className="absolute -bottom-5 text-[11px] text-gray-500 group-hover:text-pink-400 transition-all">
-                  {snippet.likes?.length || 0}
-                </span>
-
-                {/* Tooltip */}
-                <span
-                  className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900/90 text-gray-200 rounded-md 
-      opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none shadow-md"
-                >
-                  {snippet.isLikedByUser ? "Unlike" : "Like"}
-                </span>
-              </button>
-
-              {/* ⬇ Download */}
-              <button
-                onClick={handleDownload}
-                className="group relative flex items-center justify-center p-2.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-800/50 transition-all duration-300"
-              >
-                <Download
-                  size={18}
-                  className="transition-transform group-hover:scale-110"
-                />
-                <span
-                  className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900/90 text-gray-200 rounded-md 
-      opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none shadow-md"
-                >
-                  Download
-                </span>
-              </button>
-
-              {/* ✏ Edit */}
-              <button
-                onClick={() => setIsEditing(true)}
-                className="group relative flex items-center justify-center p-2.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-800/50 transition-all duration-300"
-              >
-                <Edit3
-                  size={18}
-                  className="transition-transform group-hover:scale-110"
-                />
-                <span
-                  className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900/90 text-gray-200 rounded-md 
-      opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none shadow-md"
-                >
-                  Edit
-                </span>
-              </button>
-
-              {/* 🗑 Delete */}
-              {onDelete && (
-                <button
-                  onClick={() => onDelete(snippet._id)}
-                  className="group relative flex items-center justify-center p-2.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-gray-800/50 transition-all duration-300"
-                >
-                  <Trash2
-                    size={18}
-                    className="transition-transform group-hover:scale-110"
-                  />
-                  <span
-                    className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900/90 text-gray-200 rounded-md 
-        opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none shadow-md"
-                  >
-                    Delete
-                  </span>
-                </button>
-              )}
-
-              {/* 🔄 GitHub Sync */}
-              <button
-                onClick={() => onSyncGithub(snippet._id)}
-                className="group relative flex items-center justify-center p-2.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-800/50 transition-all duration-300"
-              >
-                <Github
-                  size={18}
-                  className="transition-transform group-hover:scale-110"
-                />
-                <span
-                  className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900/90 text-gray-200 rounded-md 
-      opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none shadow-md"
-                >
-                  Sync GitHub
-                </span>
-              </button>
-
-              {/* 🔱 Fork Snippet */}
-                <button
-                  onClick={() => onFork?.(snippet._id)}
-
-                  className="group relative flex items-center justify-center p-2.5 rounded-md text-gray-400 hover:text-yellow-400 hover:bg-gray-800/50 transition-all duration-300"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor" className="w-5 h-5 transition-transform group-hover:scale-110">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6m0 0l6-6m-6 6V3" />
-                  </svg>
-                  <span className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900 text-gray-300 rounded-md opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none">
-                    Fork Snippet
-                  </span>
-                </button>
-
-
-              {/* 📂 Collection Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowCollections(!showCollections)}
-                  className="group relative flex items-center justify-center p-2.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-800/50 transition-all duration-300"
-                >
-                  <Folder
-                    size={18}
-                    className="transition-transform group-hover:scale-110"
-                  />
-                  <span
-                    className="absolute bottom-9 text-xs px-2 py-1 bg-gray-900/90 text-gray-200 rounded-md 
-        opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all pointer-events-none shadow-md"
-                  >
-                    Add to Collection
-                  </span>
-                </button>
-
-                {showCollections && (
-                  <div className="absolute right-0 mt-2 bg-[#0d1117] border border-gray-800 shadow-xl rounded-lg p-2 w-56 z-10 animate-fade-in">
-                    {collections.length > 0 ? (
-                      collections.map((c) => (
-                        <button
-                          key={c._id}
-                          onClick={() => handleAddToCollection(c._id)}
-                          className="block w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-800/60 rounded-md transition-all"
-                        >
-                          {c.name}
-                        </button>
-                      ))
-                    ) : (
-                      <p className="text-gray-500 text-sm italic px-3 py-2">
-                        No collections yet
-                      </p>
-                    )}
-
-                    {/* ➕ Create new collection */}
-                    <div className="mt-2 border-t border-gray-800 pt-2">
-                      <input
-                        type="text"
-                        placeholder="New collection..."
-                        value={newCollection}
-                        onChange={(e) => setNewCollection(e.target.value)}
-                        className="w-full px-2 py-1.5 bg-gray-900 text-white rounded-md text-sm border border-gray-800 focus:border-blue-500 focus:ring-0 outline-none"
-                      />
-                      <button
-                        onClick={handleCreateCollection}
-                        className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm py-1.5 rounded-md transition-all"
-                      >
-                        + Create
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 💬 COMMENTS SECTION */}
-            <div className="mt-6 text-sm text-gray-300">
-              <h4 className="text-lg font-semibold text-blue-400 mb-2">
-                💬 Comments
-              </h4>
-
-              {/* Existing comments */}
-              {snippet.comments && snippet.comments.length > 0 ? (
-                <div className="space-y-3 max-h-60 overflow-y-auto border border-gray-700 rounded-md p-3 bg-gray-800/60">
-                  {snippet.comments
-                    .slice()
-                    .reverse()
-                    .map((c, i) => (
-                      <div
-                        key={c._id || i}
-                        className="border-b border-gray-700 pb-2 last:border-0 last:pb-0 flex justify-between items-start"
-                      >
-                        <div>
-                          <p className="font-semibold text-blue-300">
-                            {c.user || "Anonymous"}
-                            <span className="text-gray-500 text-xs ml-2">
-                              {new Date(c.createdAt).toLocaleString()}
-                            </span>
-                          </p>
-                          <p className="text-gray-200 mt-1 whitespace-pre-wrap">
-                            {c.text}
-                          </p>
-                        </div>
-
-                        {/* 🗑 Delete button (only for author or snippet owner) */}
-                        {(currentUser?.username === c.user ||
-                          currentUser?.username === snippet.author) && (
-                          <button
-                            onClick={async () => {
-                              if (!confirm("Delete this comment?")) return;
-
-                              try {
-                                const token = localStorage.getItem("token");
-                                const res = await fetch(
-                                  `${API}/api/snippets/${snippet._id}/comments/${c._id}`,
-                                  {
-                                    method: "DELETE",
-                                    headers: {
-                                      Authorization: `Bearer ${token}`,
-                                    },
-                                  }
-                                );
-
-                                const text = await res.text(); // 🧠 safer parse
-                                let data;
-                                try {
-                                  data = JSON.parse(text);
-                                } catch {
-                                  console.error("❌ Non-JSON response:", text);
-                                  alert("Server error while deleting comment");
-                                  return;
-                                }
-
-                                if (res.ok) {
-                                  onSnippetUpdate(data.snippet || snippet);
-                                } else {
-                                  alert(
-                                    "❌ Failed: " +
-                                      (data.error || "Unknown error")
-                                  );
-                                }
-                              } catch (err) {
-                                console.error("delete comment error:", err);
-                                alert(
-                                  "❌ Network error while deleting comment"
-                                );
-                              }
-                            }}
-                            className="text-red-400 hover:text-red-500 text-xs font-medium ml-2"
-                            title="Delete comment"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 italic">
-                  No comments yet. Be the first to comment!
-                </p>
-              )}
-
-              {/* ➕ Add new comment */}
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!comment.trim()) return alert("Enter a comment");
-                  setCommentLoading(true);
-
-                  try {
-                    const res = await fetch(
-                      `${API}/api/snippets/${snippet._id}/comments`,
-                      {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                          )}`,
-                        },
-                        body: JSON.stringify({ text: comment }),
-                      }
-                    );
-
-                    const text = await res.text();
-                    let data;
-                    try {
-                      data = JSON.parse(text);
-                    } catch {
-                      console.error("❌ Non-JSON response:", text);
-                      alert("Server error while adding comment");
-                      return;
-                    }
-
-                    if (res.ok) {
-                      onSnippetUpdate(data);
-                      setComment("");
-                    } else {
-                      alert("❌ Failed: " + (data.error || "Unknown error"));
-                    }
-                  } catch (err) {
-                    console.error("add comment error:", err);
-                    alert("❌ Network error while adding comment");
-                  } finally {
-                    setCommentLoading(false);
-                  }
-                }}
-                className="mt-3 flex items-center gap-2"
-              >
-                <input
-                  type="text"
-                  placeholder="Write a comment..."
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  disabled={commentLoading}
-                  className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-white border border-gray-700 focus:outline-none focus:border-blue-500 text-sm disabled:opacity-50"
-                />
-                <button
-                  type="submit"
-                  disabled={commentLoading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm flex items-center justify-center disabled:opacity-50"
-                >
-                  {commentLoading ? "..." : "➤"}
-                </button>
-              </form>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ------------------------------------------------------------------
-// Collections UI
-// ------------------------------------------------------------------
-function CollectionsPage({
-  collections,
-  onSelectCollection,
-  onEditCollection,
-  onDeleteCollection,
-}) {
-  return (
-    <div className="p-8">
-      <h2 className="text-2xl font-bold text-blue-400 mb-6">
-        📂 My Collections
-      </h2>
-
-      {collections.length === 0 ? (
-        <p className="text-gray-500">
-          No collections yet. Create one by adding a snippet.
-        </p>
-      ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {collections.map((c) => (
-            <div
-              key={c._id}
-              onClick={() => onSelectCollection(c._id)}
-              className="relative group bg-gradient-to-br from-gray-800/90 to-gray-900/90 border border-gray-700 
-                         rounded-2xl p-6 shadow-md hover:shadow-blue-500/30 hover:border-blue-500 transition cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-600/20 rounded-xl p-3 group-hover:bg-blue-600/30 transition">
-                  <FolderOpen className="text-blue-400 w-6 h-6" />
-                </div>
-                <h4 className="text-lg font-semibold text-blue-300">
-                  {c.name}
-                </h4>
-              </div>
-              {c.description && (
-                <p className="text-sm text-gray-400 mt-2">{c.description}</p>
-              )}
-              <div className="mt-4 flex justify-between text-xs text-gray-400">
-                <span>{c.snippets?.length || 0} snippets</span>
-                <span>{formatDate(c.createdAt)}</span>
-              </div>
-
-              {/* Edit/Delete */}
-              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEditCollection(c);
-                  }}
-                  className="p-1 bg-gray-700 hover:bg-gray-600 rounded"
-                >
-                  <Edit2 size={14} className="text-yellow-400" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteCollection(c._id);
-                  }}
-                  className="p-1 bg-gray-700 hover:bg-gray-600 rounded"
-                >
-                  <Trash2 size={14} className="text-red-400" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CollectionDetailPage({ collection, onBack, onSelectSnippet }) {
-  if (!collection) return null;
-  return (
-    <div className="p-8 space-y-6">
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-blue-400 hover:text-blue-300"
-      >
-        <ArrowLeft size={16} /> Back
-      </button>
-      <h2 className="text-2xl font-bold text-blue-400">{collection.name}</h2>
-      <p className="text-gray-400">{collection.description}</p>
-
-      <SnippetGrid
-        snippets={collection.snippets || []}
-        onSelect={onSelectSnippet}
-      />
-    </div>
-  );
-}
-
-// ---------------- add snippet form ----------------
-function AddSnippetForm({ onAdd }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [language, setLanguage] = useState("");
-  const [code, setCode] = useState("");
-  const [privacy, setPrivacy] = useState("public");
-  const [loading, setLoading] = useState(false);
-
-  async function submit(e) {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("You must be logged in.");
-        return;
-      }
-      const res = await axios.post(
-        `${API}/api/snippets`,
-        { title, description, language, code, isPublic: privacy === "public" },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      onAdd?.(res.data);
-      setTitle("");
-      setDescription("");
-      setLanguage("");
-      setCode("");
-      setPrivacy("public");
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.error || "Error adding snippet");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <form
-      onSubmit={submit}
-      className="w-full max-w-3xl mx-auto bg-gray-900/60 backdrop-blur-lg p-10 rounded-2xl shadow-2xl border border-gray-700"
-    >
-      <h2 className="text-4xl font-extrabold text-center bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-8">
-        ✨ Add a New Snippet
-      </h2>
-
-      <div className="space-y-6">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-          placeholder="Snippet Title"
-          className="w-full border border-gray-600 bg-gray-800/70 text-gray-200 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-        />
-
-        <input
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          required
-          placeholder="Short Description"
-          className="w-full border border-gray-600 bg-gray-800/70 text-gray-200 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-        />
-
-        <select
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          required
-          className="w-full border border-gray-600 bg-gray-800/70 text-gray-200 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-        >
-          <option value="">Select Language</option>
-          <option value="javascript">JavaScript</option>
-          <option value="css">CSS</option>
-          <option value="html">HTML</option>
-          <option value="php">PHP</option>
-          <option value="python">Python</option>
-          <option value="c">C</option>
-          <option value="cpp">C++</option>
-          <option value="java">Java</option>
-          <option value="ruby">Ruby</option>
-        </select>
-
-        <textarea
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          required
-          placeholder="Paste your code here..."
-          className="w-full border border-gray-600 bg-gray-800/70 text-gray-200 rounded-xl px-5 py-4 min-h-[180px] font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-        />
-
-        <div className="flex gap-6 text-gray-300">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              checked={privacy === "public"}
-              onChange={() => setPrivacy("public")}
-              className="accent-blue-500"
-            />
-            <span className="text-sm">🌍 Public</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              checked={privacy === "private"}
-              onChange={() => setPrivacy("private")}
-              className="accent-purple-500"
-            />
-            <span className="text-sm">🔒 Private</span>
-          </label>
-        </div>
-
-        <div className="text-center">
-          <button
-            disabled={loading}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 text-white px-10 py-4 rounded-xl font-semibold shadow-lg hover:shadow-blue-500/50 transition-all"
-          >
-            {loading ? "🚀 Adding..." : "➕ Add Snippet"}
-          </button>
-        </div>
-      </div>
-    </form>
-  );
-}
-
-// ------------------------------------------------------------------
-// Profile Page
-// ------------------------------------------------------------------
-function Profile() {
-  const [user, setUser] = useState(null);
-  const [githubConnected, setGithubConnected] = useState(false);
-  const [githubProfile, setGithubProfile] = useState(null);
-  const [githubToken, setGithubToken] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null);
-  const [editedProfile, setEditedProfile] = useState({});
-  const [techStack, setTechStack] = useState([]);
-  const [recentSnippets, setRecentSnippets] = useState([]);
-  const [insights, setInsights] = useState({
-    totalSnippets: 0,
-    totalLikes: 0,
-    totalViews: 0,
-  });
-  const [contributions, setContributions] = useState([]);
-  const [activity, setActivity] = useState([]);
-  const [error, setError] = useState(null);
-
-  // ✅ Combined Dashboard Fetch
-  const fetchDashboardData = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      setLoading(true);
-
-      // Run all API requests in parallel for better performance
-      const [profileRes, snippetsRes, activityRes] = await Promise.all([
-        fetch(`${API}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${API}/api/snippets/mine`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${API}/api/activity/mine`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
-
-      const [profileData, snippetsData, activityData] = await Promise.all([
-        profileRes.json(),
-        snippetsRes.json(),
-        activityRes.json(),
-      ]);
-
-      // 👤 Profile
-      if (profileRes.ok) {
-        setUser(profileData.user);
-        setEditedProfile(profileData.user);
-        setTechStack(
-          profileData.user.techStack
-            ? profileData.user.techStack.split(",")
-            : []
-        );
-      }
-
-      // 🧩 Snippets
-      if (snippetsRes.ok) {
-        setRecentSnippets(snippetsData.slice(0, 5));
-        const totalLikes = snippetsData.reduce(
-          (sum, s) => sum + (s.likes?.length || 0),
-          0
-        );
-        const totalViews = snippetsData.reduce(
-          (sum, s) => sum + (s.views || 0),
-          0
-        );
-        setInsights({
-          totalSnippets: snippetsData.length,
-          totalLikes,
-          totalViews,
-        });
-
-        // 🟩 Contributions (30-day heatmap)
-        const now = new Date();
-        const days = Array.from({ length: 30 }, (_, i) => {
-          const d = new Date(now);
-          d.setDate(now.getDate() - i);
-          return { date: d.toISOString().split("T")[0], count: 0 };
-        });
-        snippetsData.forEach((snip) => {
-          const created = snip.createdAt?.split("T")[0];
-          const found = days.find((d) => d.date === created);
-          if (found) found.count++;
-        });
-        setContributions(days.reverse());
-      }
-
-      // 🕓 Activity
-      if (activityRes.ok) setActivity(activityData);
-      else setActivity([]);
-    } catch (err) {
-      console.error("Dashboard fetch error:", err);
-      setError("Failed to load profile data.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ✅ GitHub Status
-  const fetchGitHubStatus = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    try {
-      const res = await fetch(`${API}/api/user/github-token`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.connected && !data.expired) {
-        setGithubConnected(true);
-        setGithubProfile({
-          login: data.githubUsername,
-          avatar_url: data.githubAvatar,
-          html_url: `https://github.com/${data.githubUsername}`,
-        });
-      }
-    } catch (err) {
-      console.error("GitHub status fetch error:", err);
-    }
-  };
-
-  // ✅ Connect GitHub
-  const handleConnectGithub = async () => {
-    if (!githubToken.trim())
-      return alert("Enter your GitHub Personal Access Token");
-    const appToken = localStorage.getItem("token");
-    try {
-      const verify = await fetch("https://api.github.com/user", {
-        headers: { Authorization: `token ${githubToken}` },
-      });
-      if (!verify.ok) throw new Error("Invalid GitHub token");
-      const profile = await verify.json();
-
-      await fetch(`${API}/api/user/github-token`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${appToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ token: githubToken }),
-      });
-
-      setGithubConnected(true);
-      setGithubProfile(profile);
-      setGithubToken("");
-      alert(`✅ Connected as ${profile.login}`);
-    } catch (err) {
-      console.error("GitHub connect error:", err);
-      alert("❌ Failed to connect GitHub");
-    }
-  };
-
-  // ✅ Disconnect GitHub
-  const handleDisconnectGithub = async () => {
-    if (!window.confirm("Are you sure you want to disconnect GitHub?")) return;
-    const token = localStorage.getItem("token");
-    try {
-      await fetch(`${API}/api/user/github-token`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setGithubConnected(false);
-      setGithubProfile(null);
-      alert("🔌 GitHub disconnected");
-    } catch (err) {
-      console.error("GitHub disconnect error:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-    fetchGitHubStatus();
-  }, []);
-
-  // ✅ Profile image
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setPreviewImage(URL.createObjectURL(file));
-      setEditedProfile({ ...editedProfile, avatar: file });
-    }
-  };
-
-  // ✅ Tech stack
-  const addTech = (e) => {
-    if (e.key === "Enter" && e.target.value.trim()) {
-      setTechStack([...techStack, e.target.value.trim()]);
-      e.target.value = "";
-    }
-  };
-  const removeTech = (tech) =>
-    setTechStack(techStack.filter((t) => t !== tech));
-
-  // ✅ Save profile
-  const handleSaveProfile = async () => {
-    const token = localStorage.getItem("token");
-    try {
-      setSaving(true);
-      const formData = new FormData();
-      Object.entries(editedProfile).forEach(([k, v]) => formData.append(k, v));
-      formData.append("techStack", techStack.join(","));
-      const res = await fetch(`${API}/api/user/update`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Update failed");
-      const updated = await res.json();
-      setUser(updated.user);
-      setIsEditing(false);
-      alert("✅ Profile updated successfully!");
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to update profile");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // 🌀 Loading & Error UI
-  if (loading)
-    return (
-      <div className="flex justify-center items-center min-h-screen text-gray-400 animate-pulse">
-        Loading profile...
-      </div>
-    );
-
-  if (error)
-    return (
-      <div className="flex justify-center items-center min-h-screen text-red-400">
-        {error}
-      </div>
-    );
-
-  return (
-    <div className="min-h-screen bg-[#0d1117] text-gray-200 py-10 px-6">
-      <div className="max-w-6xl mx-auto grid lg:grid-cols-3 gap-10">
-        {/* LEFT SIDEBAR */}
-        <div className="space-y-6">
-          {/* Profile Info */}
-          <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800 text-center">
-            <div className="relative inline-block">
-              <img
-                src={
-                  previewImage ||
-                  githubProfile?.avatar_url ||
-                  user?.avatar ||
-                  "https://avatars.githubusercontent.com/u/9919?v=4"
-                }
-                className="w-36 h-36 rounded-full border-4 border-blue-500 mx-auto"
-                alt="Profile"
-              />
-              {isEditing && (
-                <label className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 p-2 rounded-full cursor-pointer">
-                  <FaUpload size={14} />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </label>
-              )}
-            </div>
-
-            <h2 className="text-2xl font-bold mt-4">{user?.username}</h2>
-            <p className="text-gray-400 text-sm">{user?.email}</p>
-            <p className="text-gray-400 text-sm italic mt-2">
-              {user?.bio || "No bio yet"}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">
-              🕓 Joined {new Date(user?.createdAt).toLocaleDateString()}
-            </p>
-
-            {isEditing ? (
-              <div className="flex justify-center gap-3 mt-4">
-                <button
-                  onClick={handleSaveProfile}
-                  disabled={saving}
-                  className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm flex items-center gap-2 disabled:opacity-50"
-                >
-                  <FaSave /> {saving ? "Saving..." : "Save"}
-                </button>
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="bg-gray-700 hover:bg-gray-800 px-4 py-2 rounded-lg text-sm flex items-center gap-2"
-                >
-                  <FaTimes /> Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="text-blue-400 mt-3 text-sm hover:underline flex justify-center items-center gap-2"
-              >
-                <FaEdit /> Edit Profile
-              </button>
-            )}
-          </div>
-
-          {/* Tech Stack */}
-          <div className="bg-[#161b22] p-5 rounded-2xl border border-gray-800">
-            <h3 className="text-lg font-semibold text-blue-400 mb-3">
-              💻 Tech Stack
-            </h3>
-            {isEditing ? (
-              <>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {techStack.map((tech) => (
-                    <span
-                      key={tech}
-                      className="bg-blue-600/30 border border-blue-600 px-3 py-1 rounded-full text-sm flex items-center gap-2"
-                    >
-                      {tech}
-                      <button
-                        onClick={() => removeTech(tech)}
-                        className="text-red-400"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <input
-                  type="text"
-                  onKeyDown={addTech}
-                  placeholder="Type & press Enter to add"
-                  className="w-full bg-[#0d1117] border border-gray-700 rounded-lg px-4 py-2 text-sm"
-                />
-              </>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {techStack.length ? (
-                  techStack.map((tech) => (
-                    <span
-                      key={tech}
-                      className="bg-gray-900 border border-gray-700 px-3 py-1 rounded-full text-sm"
-                    >
-                      {tech}
-                    </span>
-                  ))
-                ) : (
-                  <p className="text-gray-400 text-sm">No tech stack added</p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* MAIN SECTION */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Profile Insights */}
-          <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800">
-            <h3 className="text-xl font-semibold text-yellow-400 mb-4">
-              📈 Profile Insights
-            </h3>
-            <div className="grid grid-cols-3 gap-6 text-center">
-              <div>
-                <FaCodeBranch className="text-purple-400 text-2xl mx-auto mb-2" />
-                <p className="text-gray-400 text-sm">Snippets</p>
-                <p className="text-2xl font-bold">{insights.totalSnippets}</p>
-              </div>
-              <div>
-                <FaHeart className="text-pink-400 text-2xl mx-auto mb-2" />
-                <p className="text-gray-400 text-sm">Likes</p>
-                <p className="text-2xl font-bold">{insights.totalLikes}</p>
-              </div>
-              <div>
-                <FaEye className="text-blue-400 text-2xl mx-auto mb-2" />
-                <p className="text-gray-400 text-sm">Views</p>
-                <p className="text-2xl font-bold">{insights.totalViews}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* 🐙 GitHub Integration */}
-          <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800">
-            <div className="flex items-center gap-3 mb-4">
-              <FaGithub className="text-white text-2xl" />
-              <h3 className="text-lg font-semibold text-white">
-                GitHub Integration
-              </h3>
-            </div>
-
-            {githubConnected && githubProfile ? (
-              <div className="space-y-3">
-                <p className="text-green-400">
-                  ✅ Connected as{" "}
-                  <a
-                    href={githubProfile.html_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:underline"
-                  >
-                    {githubProfile.login}
-                  </a>
-                </p>
-                <button
-                  onClick={handleDisconnectGithub}
-                  className="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-lg text-sm text-white transition font-medium"
-                >
-                  Disconnect
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-gray-400 text-sm">
-                  Connect your GitHub to sync activity and show repositories.
-                </p>
-                <input
-                  type="password"
-                  placeholder="Enter GitHub Personal Access Token"
-                  value={githubToken}
-                  onChange={(e) => setGithubToken(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700/70 text-white rounded-lg border border-gray-600"
-                />
-                <button
-                  onClick={handleConnectGithub}
-                  className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg text-sm text-white font-medium"
-                >
-                  Connect GitHub
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Recent Snippets */}
-          <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800">
-            <h3 className="text-xl font-semibold text-green-400 mb-4">
-              🧩 Recent Snippets
-            </h3>
-            {recentSnippets.length ? (
-              <div className="space-y-3">
-                {recentSnippets.map((s) => (
-                  <div
-                    key={s._id}
-                    className="p-4 rounded-lg bg-[#0d1117]/60 border border-gray-800 hover:bg-[#0d1117]/90 transition"
-                  >
-                    <h4 className="text-white font-semibold">{s.title}</h4>
-                    <p className="text-gray-400 text-sm">
-                      {s.language || "Unknown"} • {s.likes?.length || 0} Likes •{" "}
-                      {s.views || 0} Views
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-400 text-sm">No snippets yet</p>
-            )}
-          </div>
-
-          {/* Contribution Grid */}
-          <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800">
-            <h3 className="text-xl font-semibold text-orange-400 mb-3">
-              🟩 Contribution Activity (30 Days)
-            </h3>
-            <div className="grid grid-cols-15 gap-[3px] overflow-x-auto">
-              {contributions.map((d, i) => (
-                <div
-                  key={i}
-                  title={`${d.date}: ${d.count} snippet(s)`}
-                  className={`w-4 h-4 rounded-sm hover:scale-110 transition-transform ${
-                    d.count === 0
-                      ? "bg-gray-800"
-                      : d.count < 2
-                      ? "bg-green-900"
-                      : d.count < 4
-                      ? "bg-green-600"
-                      : "bg-green-400"
-                  }`}
-                ></div>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="bg-[#161b22] p-6 rounded-2xl border border-gray-800">
-            <h3 className="text-xl font-semibold text-cyan-400 mb-4">
-              🕓 Recent Activity
-            </h3>
-            {activity.length ? (
-              <ul className="space-y-3">
-                {activity.map((a) => (
-                  <li
-                    key={a._id}
-                    className="flex items-start gap-3 p-3 bg-[#0d1117]/60 rounded-lg border border-gray-800 hover:bg-[#0d1117]/80 transition"
-                  >
-                    {a.type === "created" ? (
-                      <FaCode className="text-green-400 mt-1" />
-                    ) : a.type === "deleted" ? (
-                      <FaTrashAlt className="text-red-400 mt-1" />
-                    ) : (
-                      <FaHeart className="text-pink-400 mt-1" />
-                    )}
-                    <div>
-                      <p className="text-gray-300 text-sm">
-                        <span className="font-semibold text-white">
-                          {user?.username}
-                        </span>{" "}
-                        {a.type === "created"
-                          ? "created a new snippet"
-                          : a.type === "deleted"
-                          ? "deleted a snippet"
-                          : "liked a snippet"}{" "}
-                        <span className="text-blue-400">
-                          "{a.snippetTitle}"
-                        </span>
-                      </p>
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <FaClock />{" "}
-                        {new Date(a.createdAt).toLocaleDateString("en-US", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-400 text-sm">No recent activity yet.</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="bg-gray-900 border-t border-gray-800 text-gray-300">
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-10">
-        {/* Top Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Brand + About */}
-          <div>
-            <div className="flex items-center gap-2">
-              <Code2 className="text-blue-400" size={22} />
-              <h2 className="text-xl font-bold text-white tracking-tight">
-                CODE <span className="text-purple-400">X</span>
-              </h2>
-            </div>
-            <p className="mt-3 text-sm text-gray-400 leading-relaxed">
-              A modern code sharing platform where developers can create,
-              organize, and showcase code snippets effortlessly.
-            </p>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h3 className="text-white font-semibold mb-3">Quick Links</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/" className="hover:text-blue-400 transition">
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link to="/add" className="hover:text-blue-400 transition">
-                  Add Snippet
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/collections"
-                  className="hover:text-blue-400 transition"
-                >
-                  Collections
-                </Link>
-              </li>
-              <li>
-                <Link to="/profile" className="hover:text-blue-400 transition">
-                  Profile
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Resources */}
-          <div>
-            <h3 className="text-white font-semibold mb-3">Resources</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/docs" className="hover:text-blue-400 transition">
-                  Documentation
-                </Link>
-              </li>
-              <li>
-                <Link to="/faq" className="hover:text-blue-400 transition">
-                  FAQs
-                </Link>
-              </li>
-              <li>
-                <Link to="/privacy" className="hover:text-blue-400 transition">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link to="/terms" className="hover:text-blue-400 transition">
-                  Terms of Service
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Contact + Social */}
-          <div>
-            <h3 className="text-white font-semibold mb-3">Connect</h3>
-            <p className="text-sm text-gray-400 mb-3">
-              Got feedback or questions? We’d love to hear from you!
-            </p>
-
-            <a
-              href="mailto:support@codex.dev"
-              className="flex items-center gap-2 text-sm hover:text-blue-400 transition"
-            >
-              <Mail size={16} /> support@codex.dev
-            </a>
-
-            <div className="flex gap-4 mt-4">
-              <a
-                href="https://github.com/"
-                className="hover:text-blue-400 transition"
-              >
-                <Github size={18} />
-              </a>
-              <a
-                href="https://twitter.com/"
-                className="hover:text-blue-400 transition"
-              >
-                <Twitter size={18} />
-              </a>
-              <a
-                href="https://linkedin.com/"
-                className="hover:text-blue-400 transition"
-              >
-                <Linkedin size={18} />
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-gray-800 mt-10 pt-6 text-sm text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p>
-            © {new Date().getFullYear()}{" "}
-            <span className="font-semibold text-gray-300">CODE X</span>. All
-            rights reserved.
-          </p>
-          <p>
-            Built with 💻 by{" "}
-            <span className="text-blue-400 font-medium hover:underline">
-              Developers Community
-            </span>
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
-}
+const normalizeSnippets = (data) =>
+  Array.isArray(data) ? data : Array.isArray(data?.snippets) ? data.snippets : [];
 
 export default function CodeSharingPage({ onLogout }) {
   const [page, setPage] = useState("home");
+
   const [publicSnippets, setPublicSnippets] = useState([]);
   const [userSnippets, setUserSnippets] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
   const [selectedSnippet, setSelectedSnippet] = useState(null);
 
-  // ✅ Collections
   const [collections, setCollections] = useState([]);
   const [selectedCollection, setSelectedCollection] = useState(null);
 
-  // near the top of the component, add new states
-  const [currentFilter, setCurrentFilter] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const [trending, setTrending] = useState([]);
-
-  const [exploreData, setExploreData] = useState({
-    trending: [],
-    recent: [],
-    byLanguage: {},
-  });
-  const [loadingExplore, setLoadingExplore] = useState(false);
-
-  // ✅ Search
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const searchDebounceRef = useRef(null);
-  const normalizeSnippets = (data) =>
-    Array.isArray(data)
-      ? data
-      : Array.isArray(data?.snippets)
-      ? data.snippets
-      : [];
+
+  const fetchPublic = async () => {
+    const res = await axios.get(`${API}/api/snippets/public`);
+    setPublicSnippets(normalizeSnippets(res.data));
+  };
+
+  const fetchMine = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await axios.get(`${API}/api/snippets/mine`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setUserSnippets(normalizeSnippets(res.data));
+  };
+
+  const fetchCollections = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await axios.get(`${API}/api/collections`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setCollections(res.data || []);
+  };
 
   useEffect(() => {
-    axios.interceptors.response.use(
+    // basic global 401 handling like your old file did
+    const interceptor = axios.interceptors.response.use(
       (r) => r,
       (err) => {
-        if (err.response && err.response.status === 401) {
+        if (err?.response?.status === 401) {
           localStorage.removeItem("token");
-          // optional: show toast "Session expired"
-          window.location.reload(); // or call onLogout()
+          onLogout?.();
         }
         return Promise.reject(err);
       }
     );
 
-    // Fetch public snippets
-    axios
-      .get(`${API}/api/snippets/public`)
-      .then((res) => setPublicSnippets(normalizeSnippets(res.data)))
-      .catch((err) => console.error("fetch public error:", err));
+    fetchPublic().catch((e) => console.error("fetch public error:", e));
+    fetchMine().catch((e) => console.error("fetch mine error:", e));
+    fetchCollections().catch((e) => console.error("fetch collections error:", e));
 
-    const token = localStorage.getItem("token");
-    if (token) {
-      // Fetch current user
-      axios
-        .get(`${API}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => setCurrentUser(res.data))
-        .catch(() => {
-          localStorage.removeItem("token");
-          onLogout?.();
-        });
-
-      // Fetch user’s own snippets
-      axios
-        .get(`${API}/api/snippets/mine`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => setUserSnippets(normalizeSnippets(res.data)))
-        .catch((err) => console.error("fetch mine error:", err));
-
-      // Fetch collections
-      fetchCollections();
-    }
-
-    // ✅ Fetch Trending Snippets
-    axios
-      .get(`${API}/api/snippets/trending`)
-      .then((res) => setTrending(res.data || []))
-      .catch((err) => console.error("Error fetching trending:", err));
+    return () => axios.interceptors.response.eject(interceptor);
   }, []);
 
-  // ========================= Collections =========================
-  const fetchCollections = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(`${API}/api/collections`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setCollections(res.data || []);
-    } catch (err) {
-      console.error("fetch collections error:", err);
-    }
-  };
-
-  const handleSelectCollection = async (id) => {
-    const token = localStorage.getItem("token");
-    const res = await axios.get(`${API}/api/collections/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setSelectedCollection(res.data);
-  };
-
-  const handleEditCollection = async (collection) => {
-    const name = prompt("Edit collection name:", collection.name);
-    const description = prompt("Edit description:", collection.description);
-    if (!name) return;
-    const token = localStorage.getItem("token");
-    await axios.put(
-      `${API}/api/collections/${collection._id}`,
-      { name, description },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    fetchCollections();
-  };
-
-  const handleDeleteCollection = async (id) => {
-    if (!window.confirm("Delete this collection?")) return;
-    const token = localStorage.getItem("token");
-    await axios.delete(`${API}/api/collections/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    fetchCollections();
-  };
-
-  // ========================= Snippets =========================
   const fetchSnippetById = async (id) => {
     if (!id) return;
     try {
@@ -2389,7 +86,7 @@ export default function CodeSharingPage({ onLogout }) {
 
   const handleAddSnippet = (snippet) => {
     setUserSnippets((prev) => [snippet, ...prev]);
-    if (snippet.isPublic) setPublicSnippets((prev) => [snippet, ...prev]);
+    if (snippet?.isPublic) setPublicSnippets((prev) => [snippet, ...prev]);
     setPage("my-snippets");
   };
 
@@ -2400,324 +97,229 @@ export default function CodeSharingPage({ onLogout }) {
       await axios.delete(`${API}/api/snippets/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setPublicSnippets((prev) => prev.filter((s) => s._id !== id));
       setUserSnippets((prev) => prev.filter((s) => s._id !== id));
+      setSearchResults((prev) => prev.filter((s) => s._id !== id));
       setSelectedSnippet(null);
     } catch (err) {
       console.error("delete error:", err);
-      alert(err.response?.data?.error || "Error deleting snippet");
+      alert(err?.response?.data?.error || "Error deleting snippet");
     }
   };
 
-  const handleSnippetUpdate = (updatedSnippet) => {
-    setPublicSnippets((prev) =>
-      prev.map((s) => (s._id === updatedSnippet._id ? updatedSnippet : s))
-    );
-    setUserSnippets((prev) =>
-      prev.map((s) => (s._id === updatedSnippet._id ? updatedSnippet : s))
-    );
-    setSelectedSnippet(updatedSnippet);
+  const handleSnippetUpdate = (updated) => {
+    const updateList = (setFn) =>
+      setFn((prev) => prev.map((s) => (s._id === updated._id ? updated : s)));
+
+    updateList(setPublicSnippets);
+    updateList(setUserSnippets);
+    updateList(setSearchResults);
+    setSelectedSnippet(updated);
   };
 
   const handleLike = async (id) => {
     try {
-      // 🔹 Fetch token & user from storage
       const token = localStorage.getItem("token");
-      const userData = JSON.parse(localStorage.getItem("user") || "{}");
-      let userId = userData._id || userData.id;
-      if (!userId && token) {
-        try {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          userId = payload.id; // 👈 assuming your JWT payload uses "id"
-        } catch (err) {
-          console.warn("JWT decode failed:", err);
-        }
-      }
+      if (!token) return alert("Please log in to like snippets.");
 
-      // 🚨 If not logged in
-      if (!token || !userId) {
-        alert("Please log in to like snippets!");
-        return;
-      }
-
-      // 💨 Optimistic UI update for instant feedback
-      setPublicSnippets((prev) =>
-        prev.map((s) => {
-          if (s._id !== id) return s;
-
-          const isLiked = s.likes?.some((like) => like.userId === userId);
-          const updatedLikes = isLiked
-            ? s.likes.filter((like) => like.userId !== userId)
-            : [...(s.likes || []), { userId, date: new Date() }];
-
-          return {
-            ...s,
-            likes: updatedLikes,
-            isLikedByUser: !isLiked,
-            animateLike: !isLiked, // trigger 💖 burst
-          };
-        })
-      );
-
-      // ⚙️ Sync with backend
       const res = await axios.post(
         `${API}/api/snippets/${id}/like`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const updatedSnippet = res.data;
-
-      // 🧩 Merge the server-confirmed state
-      const updateLists = (setFn) =>
+      // backend returns likes array; merge into snippet
+      const apply = (setFn) =>
         setFn((prev) =>
           prev.map((s) =>
-            s._id === id
-              ? {
-                  ...s,
-                  likes: updatedSnippet.likes,
-                  isLikedByUser: updatedSnippet.message?.includes("Liked"),
-                  animateLike: false,
-                }
-              : s
+            s._id === id ? { ...s, likes: res.data.likes, isLikedByUser: res.data.message?.includes("liked") } : s
           )
         );
 
-      updateLists(setPublicSnippets);
-      updateLists(setUserSnippets);
+      apply(setPublicSnippets);
+      apply(setUserSnippets);
+      apply(setSearchResults);
 
-      if (selectedSnippet && selectedSnippet._id === id) {
-        setSelectedSnippet((prev) => ({
-          ...prev,
-          likes: updatedSnippet.likes,
-          isLikedByUser: updatedSnippet.message?.includes("Liked"),
-          animateLike: false,
-        }));
-      }
-    } catch (err) {
-      console.error("❌ like error:", err);
-
-      if (err.response?.status === 500) {
-        alert("Server error while liking. Please try again later.");
-      } else if (err.response?.status === 401) {
-        alert("Session expired. Please log in again.");
-      } else {
-        alert("Network issue. Please check your connection.");
-      }
-    }
-  };
-
-const handleFork = async (snippetId) => {
-  const token = localStorage.getItem("token");
-  if (!token) return alert("⚠️ Please log in to fork snippets.");
-
-  try {
-    const res = await fetch(`${API}/api/snippets/${snippetId}/fork`, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Fork failed");
-
-    // ✅ Add new snippet to user's list
-    setUserSnippets((prev) => [data.snippet, ...prev]);
-
-    // 🎉 Success feedback (toast or alert)
-    alert(`✅ Forked "${data.snippet.title}" successfully!`);
-  } catch (err) {
-    console.error("❌ Fork error:", err);
-    alert(err.message || "Error forking snippet");
-  }
-};
-
-
-
-
-  const handleComment = async (id, text) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return alert("Login required to comment!");
-      const res = await axios.post(
-        `${API}/api/snippets/${id}/comments`,
-        { text },
-        { headers: { Authorization: `Bearer ${token}` } }
+      setSelectedSnippet((prev) =>
+        prev?._id === id ? { ...prev, likes: res.data.likes, isLikedByUser: res.data.message?.includes("liked") } : prev
       );
-      handleSnippetUpdate(res.data);
     } catch (err) {
-      console.error("comment error:", err);
+      console.error("like error:", err);
+      alert(err?.response?.data?.error || "Failed to like");
     }
   };
 
-  // --- GitHub Sync Function ---
-  // 🧩 Add this here:
+  const handleFork = async (snippetId) => {
+    const token = localStorage.getItem("token");
+    if (!token) return alert("Please log in to fork snippets.");
+
+    try {
+      const res = await fetch(`${API}/api/snippets/${snippetId}/fork`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Fork failed");
+
+      setUserSnippets((prev) => [data.snippet, ...prev]);
+      alert(`✅ Forked "${data.snippet.title}"`);
+    } catch (err) {
+      console.error("fork error:", err);
+      alert(err.message || "Error forking snippet");
+    }
+  };
+
   const handleSyncGithub = async (snippetId) => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        alert("You must be logged in to sync snippets.");
-        return;
-      }
+      if (!token) return alert("You must be logged in to sync snippets.");
 
-      const response = await fetch(
-        `${API}/api/snippets/${snippetId}/sync-github`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${API}/api/snippets/${snippetId}/sync-github`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Failed to sync");
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to sync snippet to GitHub");
-      }
-
-      alert(data.message || "Snippet synced successfully to GitHub!");
+      alert(data.message || "✅ Synced to GitHub!");
     } catch (err) {
       console.error("GitHub sync error:", err);
       alert(err.message || "Sync failed");
     }
   };
 
-  function debounce(func, delay) {
-    let timer;
-    return (...args) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => func(...args), delay);
-    };
-  }
-
-  // ========================= Search =========================
-  // update handleNavigate (search)
-  const handleNavigate = async (targetPage, query) => {
-    setPage(targetPage);
-
-    // If caller passed an array of snippet objects, show them directly
-    if (targetPage === "search" && Array.isArray(query)) {
-      setSearchResults(query);
-      setSearchQuery(""); // optional: no text query
-      return;
-    }
-
-    // Normalize query into a string
-    const normalizedQuery = Array.isArray(query)
-      ? query.join(" ")
-      : (query || "").toString();
-
-    if (targetPage === "search") {
-      setSearchQuery(normalizedQuery);
-
-      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-
-      searchDebounceRef.current = setTimeout(async () => {
-        if (!normalizedQuery.trim()) {
-          setSearchResults([]);
-          return;
-        }
-
-        setLoading(true);
-        try {
-          const res = await axios.get(
-            `${API}/api/snippets/search?q=${encodeURIComponent(
-              normalizedQuery
-            )}`
-          );
-          setSearchResults(res.data || []);
-        } catch (err) {
-          console.error("search error:", err);
-          setSearchResults([]);
-        } finally {
-          setLoading(false);
-        }
-      }, 350);
-    }
-  };
-
-  const fetchExploreSnippets = async () => {
-    try {
-      setLoadingExplore(true);
-      const res = await fetch(`${API}/api/snippets/explore`);
-      const data = await res.json();
-      setExploreData(data);
-    } catch (err) {
-      console.error("Error loading explore:", err);
-    } finally {
-      setLoadingExplore(false);
-    }
-  };
-
-  // ========================= Tag Filtering =========================
-  // top-level component
   const fetchSnippetsByTag = async (tag) => {
     try {
-      // toggle the tag in currentFilter
-      const prev = Array.isArray(currentFilter) ? currentFilter : [];
-      const updated = prev.includes(tag)
-        ? prev.filter((t) => t !== tag)
-        : [...prev, tag];
+      // First try tag endpoint
+      const tagRes = await axios.get(`${API}/api/snippets/tag/${encodeURIComponent(tag)}`);
+      const arr = normalizeSnippets(tagRes.data);
+      if (Array.isArray(arr) && arr.length) return arr;
+    } catch {
+      // ignore and fallback
+    }
 
-      setCurrentFilter(updated);
-
-      // if no filters -> reset
-      if (updated.length === 0) {
-        setSearchResults([]);
-        setSearchQuery("");
-        setPage("home");
-        return [];
-      }
-
-      // Build a query (space-separated or join by space)
-      const query = updated.join(" ");
-
-      setLoading(true);
-      try {
-        const res = await axios.get(
-          `${API}/api/snippets/search?q=${encodeURIComponent(query)}`
-        );
-        const data = res.data || [];
-        setSearchResults(data);
-        setPage("search");
-        setSearchQuery(query);
-        return data;
-      } catch (err) {
-        console.error("Tag filter fetch error:", err);
-        setSearchResults([]);
-        return [];
-      } finally {
-        setLoading(false);
-      }
+    try {
+      const res = await axios.get(`${API}/api/snippets/search`, { params: { q: tag } });
+      return normalizeSnippets(res.data);
     } catch (err) {
-      console.error("Tag filter error:", err);
+      console.error("fetchSnippetsByTag error:", err);
       return [];
     }
   };
 
-  // Clear all filters
-  const clearFilter = () => {
-    setCurrentFilter([]);
-    setSearchResults([]);
-    setPage("home");
+  const fetchExploreSnippets = async () => {
+    // optional endpoint; safe
+    try {
+      setLoading(true);
+      const res = await fetch(`${API}/api/snippets/explore`);
+      if (!res.ok) throw new Error("Explore endpoint not available");
+      const data = await res.json();
+      // If you add an Explore page later, store this data
+      console.log("Explore:", data);
+    } catch (err) {
+      console.warn("explore load skipped:", err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ========================= Render =========================
+  const handleNavigate = (targetPage, query) => {
+    setPage(targetPage);
+
+    // if Header passed an array of snippets (from quick filters)
+    if (targetPage === "search" && Array.isArray(query)) {
+      setSearchResults(query);
+      setSearchQuery("");
+      return;
+    }
+
+    if (targetPage !== "search") return;
+
+    const q = (query || "").toString();
+    setSearchQuery(q);
+
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+
+    searchDebounceRef.current = setTimeout(async () => {
+      if (!q.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const res = await axios.get(`${API}/api/snippets/search`, { params: { q } });
+        setSearchResults(normalizeSnippets(res.data));
+      } catch (err) {
+        console.error("search error:", err);
+        setSearchResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 350);
+  };
+
+  // Collections actions
+  const handleSelectCollection = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API}/api/collections/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSelectedCollection(res.data);
+    } catch (err) {
+      console.error("select collection error:", err);
+    }
+  };
+
+  const handleEditCollection = async (collection) => {
+    const name = window.prompt("Edit collection name:", collection?.name || "");
+    if (!name) return;
+
+    const description = window.prompt("Edit description:", collection?.description || "");
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `${API}/api/collections/${collection._id}`,
+        { name, description },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      await fetchCollections();
+    } catch (err) {
+      console.error("edit collection error:", err);
+    }
+  };
+
+  const handleDeleteCollection = async (id) => {
+    if (!window.confirm("Delete this collection?")) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API}/api/collections/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      await fetchCollections();
+      setSelectedCollection(null);
+    } catch (err) {
+      console.error("delete collection error:", err);
+    }
+  };
+
   return (
+
     <div className="min-h-screen w-full bg-gray-950 text-gray-200">
+
       <Header
         current={page}
         onNavigate={handleNavigate}
         onLogout={onLogout}
         fetchSnippetsByTag={fetchSnippetsByTag}
-        fetchExploreSnippets={fetchExploreSnippets} // ✅ add this line
-        clearFilter={clearFilter}
-        loading={loading}
-        currentFilter={currentFilter}
+        fetchExploreSnippets={fetchExploreSnippets}
       />
 
       <main className="w-full px-6 py-10 space-y-12">
@@ -2725,156 +327,14 @@ const handleFork = async (snippetId) => {
           <SnippetGrid
             snippets={publicSnippets}
             onSelect={fetchSnippetById}
-            onTagClick={(tag) => fetchSnippetsByTag(tag)}
+            onTagClick={(tag) => fetchSnippetsByTag(tag).then((arr) => handleNavigate("search", arr))}
           />
-        )}
-
-        {/* 🔥 Trending Snippets Section */}
-        {page === "home" && trending.length > 0 && (
-          <section className="mt-16 max-w-6xl mx-auto">
-            <div className="flex items-center justify-between mb-6 px-2">
-              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-pink-500 flex items-center gap-2">
-                🔥 Trending Snippets
-              </h2>
-
-              <span className="text-sm text-gray-400">
-                Top {Math.min(trending.length, 10)} this week
-              </span>
-            </div>
-
-            {/* Scrollable Row */}
-            <div className="flex gap-6 overflow-x-auto pb-4 px-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900 snap-x snap-mandatory">
-              {trending.slice(0, 10).map((snippet) => (
-                <div
-                  key={snippet._id}
-                  onClick={() => fetchSnippetById(snippet._id)}
-                  className="group cursor-pointer min-w-[280px] max-w-[320px] flex-shrink-0 snap-start p-5 rounded-2xl bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 border border-gray-800 hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300"
-                >
-                  {/* Title */}
-                  <h3 className="font-semibold text-lg text-gray-100 mb-2 group-hover:text-blue-400 transition">
-                    {snippet.title || "Untitled Snippet"}
-                  </h3>
-
-                  {/* Description */}
-                  <p className="text-gray-400 text-sm line-clamp-2 mb-3">
-                    {snippet.description || "No description available."}
-                  </p>
-
-                  {/* Info Row */}
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
-                    {snippet.language && (
-                      <span className="flex items-center gap-1 bg-gray-800 px-2 py-0.5 rounded-full text-blue-300">
-                        <Code2 size={14} /> {snippet.language}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Heart size={14} className="text-pink-500" />
-                      {snippet.likes?.length || 0}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageCircle size={14} className="text-green-400" />
-                      {snippet.comments?.length || 0}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Eye size={14} className="text-yellow-400" />
-                      {snippet.views || 0}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {page === "home" && trending.length === 0 && (
-          <div className="text-center text-gray-500 py-16">
-            <h3 className="text-lg font-semibold mb-1 text-gray-300">
-              No Trending Snippets Yet
-            </h3>
-            <p className="text-sm text-gray-500">
-              ❤️ Like some snippets to make them trend!
-            </p>
-          </div>
-        )}
-
-        {page === "explore" && (
-          <div className="w-full min-h-screen bg-[#0b0c10] text-gray-200 px-4 sm:px-6 md:px-10 lg:px-16 py-10">
-            {loadingExplore ? (
-              <div className="flex justify-center items-center h-64 text-gray-400 text-lg animate-pulse">
-                Loading explore...
-              </div>
-            ) : exploreData && exploreData.trending ? (
-              <div className="max-w-[1300px] mx-auto flex flex-col gap-20">
-                {/* 🔥 Trending Snippets */}
-                <section className="space-y-8">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-blue-400 flex items-center gap-2">
-                      🔥 Trending Snippets
-                    </h2>
-                    <span className="text-gray-500 text-sm sm:text-base mt-2 sm:mt-0">
-                      Most liked snippets this week
-                    </span>
-                  </div>
-
-                  <SnippetGrid
-                    snippets={exploreData.trending}
-                    onSelect={fetchSnippetById}
-                  />
-                </section>
-
-                {/* 🆕 Recently Added */}
-                <section className="space-y-8">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-green-400 flex items-center gap-2">
-                      🆕 Recently Added
-                    </h2>
-                    <span className="text-gray-500 text-sm sm:text-base mt-2 sm:mt-0">
-                      Fresh snippets added by the community
-                    </span>
-                  </div>
-
-                  <SnippetGrid
-                    snippets={exploreData.recent}
-                    onSelect={fetchSnippetById}
-                  />
-                </section>
-
-                {/* 💻 By Language */}
-                {Object.entries(exploreData.byLanguage || {}).map(
-                  ([lang, snippets]) => (
-                    <section key={lang} className="space-y-8">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                        <h2 className="text-2xl md:text-3xl font-extrabold text-purple-400 capitalize flex items-center gap-2">
-                          💻 {lang} Snippets
-                        </h2>
-                        <span className="text-gray-500 text-sm sm:text-base mt-2 sm:mt-0">
-                          Curated in {lang}
-                        </span>
-                      </div>
-
-                      <SnippetGrid
-                        snippets={snippets}
-                        onSelect={fetchSnippetById}
-                      />
-                    </section>
-                  )
-                )}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center text-lg">
-                ⚠️ Failed to load explore data.
-              </p>
-            )}
-          </div>
         )}
 
         {page === "add" && <AddSnippetForm onAdd={handleAddSnippet} />}
 
-        {page === "my-snippets" && (
-          <SnippetGrid snippets={userSnippets} onSelect={fetchSnippetById} />
-        )}
+        {page === "my-snippets" && <SnippetGrid snippets={userSnippets} onSelect={fetchSnippetById} />}
 
-        {/* ✅ Collections Section */}
         {page === "collections" &&
           (selectedCollection ? (
             <CollectionDetailPage
@@ -2891,104 +351,40 @@ const handleFork = async (snippetId) => {
             />
           ))}
 
-        {page === "profile" && currentUser && (
-          <Profile user={currentUser} total={userSnippets.length} />
-        )}
+        {page === "profile" && <Profile />}
 
-        {/* ✅ Search Results Section */}
         {page === "search" && (
-          <div className="animate-fadeIn">
-            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 text-gray-200">
-              <span role="img" aria-label="search">
-                🔍
-              </span>
-              <span>
-                Search Results for{" "}
-                <span className="text-blue-400 font-semibold">
-                  {searchQuery}
-                </span>
-              </span>
+          <div>
+            <h2 className="text-xl font-semibold mb-6 text-gray-200">
+              Search Results{searchQuery ? ` for "${searchQuery}"` : ""}
             </h2>
 
-            {/* 🔄 Loading State */}
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-24 text-gray-400">
-                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="text-sm text-gray-400">
-                  Fetching your snippets...
-                </p>
+              <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-sm text-gray-400">Fetching snippets...</p>
               </div>
-            ) : searchResults.length > 0 ? (
-              /* ✅ Results Grid */
-              <SnippetGrid
-                snippets={searchResults}
-                onSelect={fetchSnippetById}
-              />
             ) : (
-              /* ❌ No Results Found */
-              <div className="flex flex-col items-center justify-center py-20 text-center text-gray-400 transition-all duration-300">
-                <div className="bg-gradient-to-br from-blue-500/20 to-purple-600/10 rounded-full p-5 mb-5 shadow-lg">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-10 h-10 text-blue-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-
-                <h3 className="text-lg font-semibold text-gray-200 mb-1">
-                  No snippets found
-                </h3>
-                <p className="text-sm text-gray-500 max-w-md">
-                  We couldn’t find any snippets matching{" "}
-                  <span className="text-blue-400 font-medium">
-                    {searchQuery}
-                  </span>
-                  . Try searching with a different keyword or check your
-                  filters.
-                </p>
-
-                <div className="mt-6 flex flex-wrap gap-3 justify-center">
-                  <button
-                    onClick={() => setPage("home")}
-                    className="px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium shadow-md hover:opacity-90 transition"
-                  >
-                    🔙 Back to Home
-                  </button>
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="px-4 py-2 text-sm rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition"
-                  >
-                    Clear Search
-                  </button>
-                </div>
-              </div>
+              <SnippetGrid snippets={searchResults} onSelect={fetchSnippetById} />
             )}
           </div>
         )}
+      </main>
 
+      <Footer />
+
+      {selectedSnippet && (
         <SnippetModal
           snippet={selectedSnippet}
           onClose={() => setSelectedSnippet(null)}
           onDelete={handleDeleteSnippet}
           onSnippetUpdate={handleSnippetUpdate}
-          onLike={handleLike} 
-          onComment={handleComment}
+          onLike={handleLike}
           onSyncGithub={handleSyncGithub}
-          onTagClick={(tag) => fetchSnippetsByTag(tag)} // ✅ fixed
-          fetchExploreSnippets={fetchExploreSnippets}
+          onTagClick={(tag) => fetchSnippetsByTag(tag).then((arr) => handleNavigate("search", arr))}
           onFork={handleFork}
         />
-      </main>
-      <Footer />
+      )}
     </div>
   );
 }
