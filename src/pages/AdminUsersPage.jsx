@@ -80,7 +80,7 @@ function AdminUsersPage() {
                       onClick={() => handleDelete(user._id)}
                       className="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-700"
                     >
-                      Delete
+                      Block
                     </button>
                   </td>
                 </tr>

@@ -51,9 +51,13 @@ const API = import.meta.env.VITE_API_BASE_URL;
 
     setVerifying((prev) => ({ ...prev, [user._id]: true }));
     try {
-      const ghRes = await axios.get("https://api.github.com/user", {
-        headers: { Authorization: `token ${user.githubToken}` },
-      });
+        const ghRes = await axios.get("https://api.github.com/user", {
+          headers: {
+            Authorization: `Bearer ${user.githubToken}`,
+            Accept: "application/vnd.github+json",
+          },
+        });
+
 
       if (ghRes.data?.login) {
         user.githubUsername = ghRes.data.login;

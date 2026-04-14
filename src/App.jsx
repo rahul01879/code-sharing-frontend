@@ -3,53 +3,117 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import "prismjs/themes/prism-tomorrow.css";
 
-// ✅ User Pages
+// User pages
 import LoginForm from "./pages/LoginForm";
 import SignupForm from "./pages/SignupForm";
 import CodeSharingPage from "./pages/CodeSharingPage";
 import SnippetDetail from "./pages/SnippetDetail";
+import SandboxPreview from "./pages/SandboxPreview";
 
-// ✅ Admin Pages
+// Admin pages
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminSnippetsPage from "./pages/AdminSnippetsPage";
 import AdminGithubUsersPage from "./pages/AdminGithubUsersPage";
 
+// Public pages
 import Docs from "./pages/Docs";
 import FAQ from "./pages/FAQ";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 
-// ✅ Route Protector
+// Existing admin protector
 import AdminRoute from "./components/AdminRoute";
 
-export default function App() {
-  // ---------- Utility ----------
-  const safeParse = (value) => {
-    try {
-      return value ? JSON.parse(value) : null;
-    } catch {
-      return null;
-    }
-  };
+function safeParse(value) {
+  try {
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
+}
 
-  // ---------- State ----------
+function safeStorageGet(type, key) {
+  try {
+    return window?.[type]?.getItem(key) ?? null;
+  } catch (err) {
+    console.warn(`Unable to read ${key} from ${type}:`, err);
+    return null;
+  }
+}
+
+function safeStorageSet(type, key, value) {
+  try {
+    window?.[type]?.setItem(key, value);
+  } catch (err) {
+    console.warn(`Unable to write ${key} to ${type}:`, err);
+  }
+}
+
+function safeStorageRemove(type, key) {
+  try {
+    window?.[type]?.removeItem(key);
+  } catch (err) {
+    console.warn(`Unable to remove ${key} from ${type}:`, err);
+  }
+}
+
+function AppLoader() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#060816] px-6 text-slate-300">
+      <div className="rounded-3xl border border-white/10 bg-white/[0.04] px-8 py-6 text-center shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-md">
+        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-blue-500/70 border-t-transparent" />
+        <p className="text-sm font-medium tracking-wide text-slate-400">
+          Preparing your workspace...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function UserProtectedRoute({ token, children }) {
+  const location = useLocation();
+
+  if (!token) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  return children;
+}
+
+function PublicOnlyRoute({ token, children }) {
+  if (token) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+function AdminLoginRoute({ adminAuth, children }) {
+  if (adminAuth) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return children;
+}
+
+export default function App() {
   const [token, setToken] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [adminAuth, setAdminAuth] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ---------- Restore session ----------
   useEffect(() => {
-    const savedToken = localStorage.getItem("token");
-    const savedUser = safeParse(localStorage.getItem("user"));
-    const savedAdmin = sessionStorage.getItem("adminAuth") === "true";
-    const savedKey = sessionStorage.getItem("adminKey");
+    const savedToken = safeStorageGet("localStorage", "token");
+    const savedUser = safeParse(safeStorageGet("localStorage", "user"));
+    const savedAdmin = safeStorageGet("sessionStorage", "adminAuth") === "true";
+    const savedKey = safeStorageGet("sessionStorage", "adminKey");
 
     if (savedToken) setToken(savedToken);
     if (savedUser) setCurrentUser(savedUser);
@@ -58,103 +122,119 @@ export default function App() {
     setLoading(false);
   }, []);
 
-  // ---------- Auth Handlers ----------
-  const handleLogin = (user, newToken) => {
-    localStorage.setItem("token", newToken);
-    localStorage.setItem("user", JSON.stringify(user));
+  const handleLogin = useCallback((user, newToken) => {
+    safeStorageSet("localStorage", "token", newToken);
+    safeStorageSet("localStorage", "user", JSON.stringify(user));
     setToken(newToken);
     setCurrentUser(user);
-  };
+  }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  const handleLogout = useCallback(() => {
+    safeStorageRemove("localStorage", "token");
+    safeStorageRemove("localStorage", "user");
     setToken(null);
     setCurrentUser(null);
-  };
+  }, []);
 
-  const handleAdminLogin = (adminKey) => {
-    sessionStorage.setItem("adminAuth", "true");
-    sessionStorage.setItem("adminKey", adminKey);
+  const handleAdminLogin = useCallback((adminKey) => {
+    safeStorageSet("sessionStorage", "adminAuth", "true");
+    safeStorageSet("sessionStorage", "adminKey", adminKey);
     setAdminAuth(true);
-  };
+  }, []);
 
-  const handleAdminLogout = () => {
-    sessionStorage.removeItem("adminAuth");
-    sessionStorage.removeItem("adminKey");
+  const handleAdminLogout = useCallback(() => {
+    safeStorageRemove("sessionStorage", "adminAuth");
+    safeStorageRemove("sessionStorage", "adminKey");
     setAdminAuth(false);
-  };
+  }, []);
 
-  // ---------- Loading splash ----------
+  const appState = useMemo(
+    () => ({
+      token,
+      currentUser,
+      adminAuth,
+      isAuthenticated: Boolean(token),
+      hasUser: Boolean(currentUser),
+    }),
+    [token, currentUser, adminAuth]
+  );
+
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-gray-400 text-lg">
-        Loading...
-      </div>
-    );
+    return <AppLoader />;
   }
 
-  // ---------- Routes ----------
   return (
     <Router>
       <Routes>
-        {/* USER AUTH ROUTES */}
+        {/* Sandbox / frontend preview */}
+        <Route path="/sandbox" element={<SandboxPreview />} />
+
+        {/* Public info pages */}
+        <Route path="/docs" element={<Docs />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+
+        {/* User auth routes */}
         <Route
           path="/login"
           element={
-            token ? <Navigate to="/" replace /> : <LoginForm onLogin={handleLogin} />
+            <PublicOnlyRoute token={appState.token}>
+              <LoginForm onLogin={handleLogin} />
+            </PublicOnlyRoute>
           }
         />
 
         <Route
           path="/signup"
           element={
-            token ? <Navigate to="/" replace /> : <SignupForm onSignup={handleLogin} />
+            <PublicOnlyRoute token={appState.token}>
+              <SignupForm onSignup={handleLogin} />
+            </PublicOnlyRoute>
           }
         />
 
-        {/* USER DASHBOARD */}
+        {/* User protected routes */}
         <Route
           path="/"
           element={
-            token ? (
-              <CodeSharingPage onLogout={handleLogout} currentUser={currentUser} />
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            <UserProtectedRoute token={appState.token}>
+              <CodeSharingPage
+                onLogout={handleLogout}
+                currentUser={appState.currentUser}
+              />
+            </UserProtectedRoute>
           }
         />
 
-        {/* SNIPPET DETAIL */}
         <Route
           path="/snippets/:id"
           element={
-            token ? (
-              <SnippetDetail currentUser={currentUser} />
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            <UserProtectedRoute token={appState.token}>
+              <SnippetDetail currentUser={appState.currentUser} />
+            </UserProtectedRoute>
           }
         />
 
-        {/* ADMIN AUTH ROUTE */}
+        {/* Admin auth */}
         <Route
           path="/admin/login"
           element={
-            adminAuth ? (
-              <Navigate to="/admin/dashboard" replace />
-            ) : (
+            <AdminLoginRoute adminAuth={appState.adminAuth}>
               <AdminLoginPage onAdminLogin={handleAdminLogin} />
-            )
+            </AdminLoginRoute>
           }
         />
 
-        {/* PROTECTED ADMIN ROUTES */}
+        {/* Protected admin routes */}
         <Route
           path="/admin/dashboard"
           element={
-            <AdminRoute adminAuth={adminAuth}>
-              <AdminDashboardPage onAdminLogout={handleAdminLogout} />
+            <AdminRoute adminAuth={appState.adminAuth}>
+              <AdminDashboardPage
+                onAdminLogout={handleAdminLogout}
+                currentUser={appState.currentUser}
+              />
             </AdminRoute>
           }
         />
@@ -162,8 +242,8 @@ export default function App() {
         <Route
           path="/admin/users"
           element={
-            <AdminRoute adminAuth={adminAuth}>
-              <AdminUsersPage />
+            <AdminRoute adminAuth={appState.adminAuth}>
+              <AdminUsersPage currentUser={appState.currentUser} />
             </AdminRoute>
           }
         />
@@ -171,8 +251,8 @@ export default function App() {
         <Route
           path="/admin/snippets"
           element={
-            <AdminRoute adminAuth={adminAuth}>
-              <AdminSnippetsPage />
+            <AdminRoute adminAuth={appState.adminAuth}>
+              <AdminSnippetsPage currentUser={appState.currentUser} />
             </AdminRoute>
           }
         />
@@ -180,24 +260,22 @@ export default function App() {
         <Route
           path="/admin/github-users"
           element={
-            <AdminRoute adminAuth={adminAuth}>
-              <AdminGithubUsersPage />
+            <AdminRoute adminAuth={appState.adminAuth}>
+              <AdminGithubUsersPage currentUser={appState.currentUser} />
             </AdminRoute>
           }
         />
 
-        {/* FALLBACK */}
+        {/* Fallback */}
         <Route
           path="*"
-          element={<Navigate to={token ? "/" : "/login"} replace />}
+          element={
+            <Navigate
+              to={appState.isAuthenticated ? "/" : "/login"}
+              replace
+            />
+          }
         />
-
-        <Route path="/docs" element={<Docs />} />
-        <Route path="/faq" element={<FAQ />} />
-        <Route path="/privacy" element={<Privacy />} />
-        <Route path="/terms" element={<Terms />} />
-        
-
       </Routes>
     </Router>
   );

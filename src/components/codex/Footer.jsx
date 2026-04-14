@@ -1,70 +1,125 @@
 import { Link } from "react-router-dom";
 import { Code2, Github, Linkedin, Mail, Twitter } from "lucide-react";
 
+const APP_NAME = "CODEX";
+
+const quickLinks = [
+  { label: "Home", to: "/" },
+  { label: "Add Snippet", to: "/add" },
+  { label: "Collections", to: "/collections" },
+  { label: "Profile", to: "/profile" },
+];
+
+const resourceLinks = [
+  { label: "Documentation", to: "/docs" },
+  { label: "FAQs", to: "/faq" },
+  { label: "Privacy Policy", to: "/privacy" },
+  { label: "Terms of Service", to: "/terms" },
+];
+
+const SUPPORT_EMAIL = "support@codex.dev";
+
+const socialLinks = [
+  { label: "GitHub", href: import.meta.env.VITE_GITHUB_URL || "https://github.com", Icon: Github },
+  { label: "Twitter", href: import.meta.env.VITE_TWITTER_URL || "https://twitter.com", Icon: Twitter },
+  { label: "LinkedIn", href: import.meta.env.VITE_LINKEDIN_URL || "https://linkedin.com", Icon: Linkedin },
+];
+
 export default function Footer() {
   return (
     <footer className="bg-gray-900 border-t border-gray-800 text-gray-300">
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+          {/* Brand */}
           <div>
-            <div className="flex items-center gap-2">
-              <Code2 className="text-blue-400" size={22} />
+            <Link to="/" className="inline-flex items-center gap-2 group">
+              <Code2 className="text-blue-400 group-hover:text-blue-300 transition-colors" size={22} />
               <h2 className="text-xl font-bold text-white tracking-tight">
-                CODE<span className="text-purple-400">X</span>
+                {APP_NAME.slice(0, 4)}
+                <span className="text-purple-400">{APP_NAME.slice(4)}</span>
               </h2>
-            </div>
+            </Link>
+
             <p className="mt-3 text-sm text-gray-400 leading-relaxed">
-              A modern code sharing platform where developers can create and organize code snippets effortlessly.
+              A modern code sharing platform where developers can create, organize, and showcase snippets effortlessly.
             </p>
           </div>
 
-          <div>
+          {/* Quick Links */}
+          <nav aria-label="Quick links">
             <h3 className="text-white font-semibold mb-3">Quick Links</h3>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/" className="hover:text-blue-400 transition">Home</Link></li>
-              <li><Link to="/add" className="hover:text-blue-400 transition">Add Snippet</Link></li>
-              <li><Link to="/collections" className="hover:text-blue-400 transition">Collections</Link></li>
-              <li><Link to="/profile" className="hover:text-blue-400 transition">Profile</Link></li>
+              {quickLinks.map((l) => (
+                <li key={l.to}>
+                  <Link
+                    to={l.to}
+                    className="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
-          </div>
+          </nav>
 
-          <div>
+          {/* Resources */}
+          <nav aria-label="Resources">
             <h3 className="text-white font-semibold mb-3">Resources</h3>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/docs" className="hover:text-blue-400 transition">Documentation</Link></li>
-              <li><Link to="/faq" className="hover:text-blue-400 transition">FAQs</Link></li>
-              <li><Link to="/privacy" className="hover:text-blue-400 transition">Privacy Policy</Link></li>
-              <li><Link to="/terms" className="hover:text-blue-400 transition">Terms of Service</Link></li>
+              {resourceLinks.map((l) => (
+                <li key={l.to}>
+                  <Link
+                    to={l.to}
+                    className="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
-          </div>
+          </nav>
 
+          {/* Connect */}
           <div>
             <h3 className="text-white font-semibold mb-3">Connect</h3>
-            <p className="text-sm text-gray-400 mb-3">Got feedback or questions? Reach out.</p>
-            <a href="mailto:support@codex.dev" className="flex items-center gap-2 text-sm hover:text-blue-400 transition">
-              <Mail size={16} /> support@codex.dev
+            <p className="text-sm text-gray-400 mb-3">
+              Got feedback or questions? Reach out.
+            </p>
+
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="inline-flex items-center gap-2 text-sm text-gray-300 hover:text-blue-400 transition-colors"
+            >
+              <Mail size={16} />
+              <span>{SUPPORT_EMAIL}</span>
             </a>
 
-            <div className="flex gap-4 mt-4">
-              <a href="https://github.com" className="hover:text-blue-400 transition" target="_blank" rel="noreferrer">
-                <Github size={18} />
-              </a>
-              <a href="https://twitter.com" className="hover:text-blue-400 transition" target="_blank" rel="noreferrer">
-                <Twitter size={18} />
-              </a>
-              <a href="https://linkedin.com" className="hover:text-blue-400 transition" target="_blank" rel="noreferrer">
-                <Linkedin size={18} />
-              </a>
+            <div className="flex items-center gap-4 mt-4">
+              {socialLinks.map(({ label, href, Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  className="text-gray-300 hover:text-blue-400 transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  title={label}
+                >
+                  <Icon size={18} />
+                </a>
+              ))}
             </div>
           </div>
         </div>
 
         <div className="border-t border-gray-800 mt-10 pt-6 text-sm text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-3">
           <p>
-            © {new Date().getFullYear()} <span className="font-semibold text-gray-300">CODEX</span>. All rights reserved.
+            © {new Date().getFullYear()}{" "}
+            <span className="font-semibold text-gray-300">{APP_NAME}</span>. All rights reserved.
           </p>
           <p>
-            Built with ❤ by <span className="text-blue-400 font-medium">Developers Community</span>
+            Built with CodeX by{" "}
+            <span className="text-blue-400 font-medium hover:underline">Developers Community</span>
           </p>
         </div>
       </div>
